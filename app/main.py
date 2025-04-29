@@ -27,7 +27,7 @@ if settings.isDeveloperPC:
     from pyngrok import ngrok
     tunnel = ngrok.connect('http://localhost:5000')
     INTERFACE = TelegramInterface(loads=LOADS,
-                                  webhook_url=f'{tunnel.public_url}/webhook-aibot/',
+                                  webhook_url=f'{tunnel.public_url}{settings.DEFAULT_WEBHOOK}',
                                   chat_id=settings.TELEGRAM_DEVELOPER_CHAT_ID)
 else:
     INTERFACE = TelegramInterface(loads=LOADS)
@@ -45,13 +45,13 @@ def __gen_response2(http_status: int, json_status: str, message: str = None, wor
     return resp
 
 
-@app.route('/loads/', methods=['GET'])
+@app.route('/s2/loads/', methods=['GET'])
 def get_loads():
     _loads = LOADS.expose_active_loads()
     return __gen_response2(http_status=200, json_status='success', workload={'len': len(_loads), 'loads': _loads})
 
 
-@app.route('/driver/', methods=['GET'])
+@app.route('/s2/driver/', methods=['GET'])
 def get_driver():
     # /driver?load_id=4214$auth_num=470129384701
     load_id = request.args.get('load_id')
@@ -81,7 +81,7 @@ def loads_webhook():
 # often via a simple browser request (e.g., URL typed into browser or QR code scan).
 # Using GET allows for maximum accessibility without requiring a dedicated client or POST tooling.
 # https://api.intersmartgroup.com/webhook_reset/?token=WEBHOOK_RESET_SECRET_TOKEN
-@app.route('/webhook_reset/', methods=['GET'])
+@app.route('/s2/webhook_reset/', methods=['GET'])
 def webhook_reset():
     global INTERFACE
     try:
