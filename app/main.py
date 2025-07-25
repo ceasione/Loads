@@ -7,30 +7,14 @@ from app.lib.apis import telegramapi2
 from app.lib.loads.loads import Loads
 from app.lib.loads.interface import TelegramInterface
 from app import settings
-
-"""
-pip install Flask
-pip install flask-cors
-pip install urllib3==1.26.16
-pip install python-telegram-bot==13.15
-pip install pyngrok
-pip install requests
-"""
+from app.settings import WEBHOOK_URL
 
 app = Flask(__name__)
 CORS = CORS(app)
 
-
 LOADS = Loads.from_file_storage(settings.LOADS_NOSQL_LOC)
+INTERFACE = None
 
-if settings.isDeveloperPC:
-    from pyngrok import ngrok
-    tunnel = ngrok.connect('http://localhost:5000')
-    INTERFACE = TelegramInterface(loads=LOADS,
-                                  webhook_url=f'{tunnel.public_url}{settings.DEFAULT_WEBHOOK}',
-                                  chat_id=settings.TELEGRAM_DEVELOPER_CHAT_ID)
-else:
-    INTERFACE = TelegramInterface(loads=LOADS)
 
 
 def __gen_response2(http_status: int, json_status: str, message: str = None, workload=None) -> Response:
@@ -80,7 +64,7 @@ def loads_webhook():
 # This route is designed to be easily triggered from a mobile device,
 # often via a simple browser request (e.g., URL typed into browser or QR code scan).
 # Using GET allows for maximum accessibility without requiring a dedicated client or POST tooling.
-# https://api.intersmartgroup.com/webhook_reset/?token=WEBHOOK_RESET_SECRET_TOKEN
+# https://api.intersmartgroup.com/s2/webhook_reset/?token=WEBHOOK_RESET_SECRET_TOKEN
 @app.route('/s2/webhook_reset/', methods=['GET'])
 def webhook_reset():
     global INTERFACE
@@ -103,8 +87,18 @@ def handle_exception(e):
 
 
 def create_app():
+    global INTERFACE
+    INTERFACE = TelegramInterface(loads=LOADS)
     return app
 
 
 if __name__ == '__main__':
+    from pyngrok import ngrok
+
+    tunnel = ngrok.connect('http://localhost:5000')
+    INTERFACE = TelegramInterface(
+        loads=LOADS,
+        webhook_url=tunnel.public_url+settings.WEBHOOK_PATH,
+        chat_id=settings.TELEGRAM_DEVELOPER_CHAT_ID
+    )
     app.run(debug=True, use_reloader=False)
