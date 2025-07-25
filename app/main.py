@@ -6,7 +6,7 @@ from flask_cors import CORS
 from app.lib.apis import telegramapi2
 from app.lib.loads.loads import Loads
 from app.lib.loads.interface import TelegramInterface
-from app.impsettings import settings
+from app import settings
 
 """
 pip install Flask

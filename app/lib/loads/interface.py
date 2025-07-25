@@ -1,4 +1,4 @@
-from app.impsettings import settings
+from app import settings
 from app.lib.apis import telegramapi2
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Filters, CallbackQueryHandler

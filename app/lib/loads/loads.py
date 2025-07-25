@@ -2,7 +2,7 @@ import datetime
 import _md5
 import random
 import time
-from app.impsettings import settings
+from app import settings
 import json
 LOADS_NOSQL_LOC = settings.LOADS_NOSQL_LOC
 

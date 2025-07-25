@@ -1,4 +1,4 @@
-from app.impsettings import settings
+from app import settings
 import telegram
 from telegram.error import BadRequest
 import traceback
