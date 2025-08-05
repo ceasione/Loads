@@ -1,5 +1,6 @@
 
 from typing import Optional, Any
+import secrets
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -34,7 +35,7 @@ class AsyncTelegramInterface:
         self.app.add_handler(MessageHandler(filters.TEXT, self.handle_message))
         await self.app.initialize()
         await self.app.start()
-        await self.app.bot.set_webhook(url=self.webhook_url)
+        await self.app.bot.set_webhook(url=self.webhook_url, secret_token=self.own_secret)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):

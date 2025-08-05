@@ -67,8 +67,11 @@ def _gen_response3(
 
 @app.post(settings.TG_WEBHOOK_ENDPOINT)
 async def process_tg_webhook(request: Request):
-    data = await request.json()
     tg_if = cast(AsyncTelegramInterface, request.app.state.tg_if)
+    got_secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
+    if got_secret != tg_if.own_secret:
+        raise HTTPException(403, 'Forbidden')
+    data = await request.json()
     await tg_if.webhook_entrypoint(data)
     return {'status': 'ok'}
 
