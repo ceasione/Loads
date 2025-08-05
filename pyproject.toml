@@ -16,7 +16,7 @@ dependencies = [
     "python-telegram-bot (>=22.3,<23.0)",
     "pytest (>=8.4.1,<9.0.0)",
     "dotenv (>=0.9.9,<0.10.0)",
-    "fastapi (>=0.116.1,<0.117.0)"
+    "fastapi[standard] (>=0.116.1,<0.117.0)"
 ]
 
 [tool.poetry]
