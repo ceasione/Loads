@@ -42,12 +42,14 @@ async def lifespan(app_: FastAPI):
     # Initialize async resources
     async with AsyncTelegramInterface(
             token=settings.TG_API_TOKEN,
-            webhook_url=public_url+settings.TG_WEBHOOK_ENDPOINT) as tg_if:
+            webhook_url=public_url+settings.TG_WEBHOOK_ENDPOINT,
+            chat_id=settings.TELEGRAM_LOADS_CHAT_ID,
+            loads=loads) as tg_if:
         app_.state.tg_if = tg_if
         # Yielding control
         yield
 
-    # No need to clean up for now
+    # No need to clean up after
 
 app = FastAPI(lifespan=lifespan)
 

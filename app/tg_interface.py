@@ -9,14 +9,23 @@ from telegram.ext import (
     Application,
     filters
 )
+from app.loads import Loads
 
 
 class AsyncTelegramInterface:
 
-    def __init__(self, token: str, webhook_url: str):
+    def __init__(
+            self,
+            token: str,
+            webhook_url: str,
+            chat_id: int,
+            loads: Loads):
         self.token: str = token
         self.webhook_url: str = webhook_url
+        self.chat_id: int = chat_id
         self.app: Optional[Application] = None
+        self.loads: Loads = loads
+        self.own_secret = secrets.token_urlsafe(32)
 
     async def __aenter__(self) -> 'AsyncTelegramInterface':
         self.app = ApplicationBuilder().token(self.token).build()
