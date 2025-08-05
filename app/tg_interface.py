@@ -1,7 +1,10 @@
 
 from typing import Optional, Any
 import secrets
-from telegram import Update
+from telegram import (
+    Update,
+    ReplyKeyboardMarkup
+)
 from telegram.ext import (
     ApplicationBuilder,
     ContextTypes,
@@ -43,14 +46,33 @@ class AsyncTelegramInterface:
         await self.app.stop()
         await self.app.shutdown()
 
-    @staticmethod
+    async def _prepare_chat(self, update, _context):
+        """
+        Sends a message with quantity of loads and set
+        ReplyKeyboardMarkup to show a keyboard at the bottom of chat.
+        """
+        keyboard = [
+            ['Show active', 'Show deleted'],
+            ['Create new']
+        ]
+        bottom_keyboard = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
+        active_loads_qty: int = len(self.loads.expose_active_loads())
+        await self.app.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f'Active loads: {active_loads_qty}',
+            reply_markup=bottom_keyboard,
+            disable_notification=True
+        )
+
     async def handle_start(
+            self,
             update: Update,
             context: ContextTypes.DEFAULT_TYPE) -> None:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text='Hello, I am Telegram Bot.'
-        )
+        """
+        Handles the /start command. For this command we are preparing
+        the ReplyKeyboardMarkup for further bot controls
+        """
+        await self._prepare_chat(update, context)
 
     @staticmethod
     async def handle_message(
