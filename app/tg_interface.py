@@ -1,4 +1,5 @@
 
+from typing import Optional, Any
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -8,49 +9,52 @@ from telegram.ext import (
     Application,
     filters
 )
-from telegram.error import TelegramError
 
 
-async def handle_start(
-        update: Update,
-        context: ContextTypes.DEFAULT_TYPE) -> None:
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text='Hello, I am Telegram Bot.'
-    )
+class AsyncTelegramInterface:
 
+    def __init__(self, token: str, webhook_url: str):
+        self.token: str = token
+        self.webhook_url: str = webhook_url
+        self.app: Optional[Application] = None
 
-async def handle_message(
-        update: Update,
-        context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=update.message.text
-    )
+    async def __aenter__(self) -> 'AsyncTelegramInterface':
+        self.app = ApplicationBuilder().token(self.token).build()
+        self.app.add_error_handler(self.handle_error)
+        self.app.add_handler(CommandHandler('start', self.handle_start))
+        self.app.add_handler(MessageHandler(filters.TEXT, self.handle_message))
+        await self.app.initialize()
+        await self.app.start()
+        await self.app.bot.set_webhook(url=self.webhook_url)
+        return self
 
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.app.bot.delete_webhook()
+        await self.app.stop()
+        await self.app.shutdown()
 
-async def handle_error(update: object, context: ContextTypes.DEFAULT_TYPE):
-    raise context.error
+    @staticmethod
+    async def handle_start(
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> None:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text='Hello, I am Telegram Bot.'
+        )
 
+    @staticmethod
+    async def handle_message(
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> None:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=update.message.text
+        )
 
-async def webhook_entrypoint(data, app: Application):
-    update = Update.de_json(data, app.bot)
-    await app.process_update(update)
+    @staticmethod
+    async def handle_error(update: object, context: ContextTypes.DEFAULT_TYPE):
+        raise context.error
 
-
-async def build(token: str, webhook_url: str) -> Application:
-    app: Application = ApplicationBuilder().token(token).build()
-    app.add_error_handler(handle_error)
-    app.add_handler(CommandHandler('start', handle_start))
-    app.add_handler(MessageHandler(filters.TEXT, handle_message))
-
-    await app.initialize()
-    await app.start()
-    await app.bot.set_webhook(url=webhook_url)
-    return app
-
-
-async def destroy(app: Application) -> None:
-    await app.bot.delete_webhook()
-    await app.stop()
-    await app.shutdown()
+    async def webhook_entrypoint(self, data: dict[str, Any]):
+        update = Update.de_json(data, self.app.bot)
+        await self.app.process_update(update)

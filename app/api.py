@@ -5,16 +5,14 @@ from fastapi import HTTPException
 from fastapi import FastAPI, Request
 from pyngrok import ngrok
 from typing import Optional, cast
-from app import tg_interface
+from app.tg_interface import AsyncTelegramInterface
 from app.loads import Loads, Load
 from telegram.ext import Application
 from app import settings
 
 
-DEBUG = True
 DEBUG_URL = 'http://localhost:8000'
 PROD_URL = 'http://localhost:8000'
-TELEGRAM_WEBHOOK_ENDPOINT = '/tg_wh'
 
 
 def setup_ngrok(local_url: str) -> str:
@@ -25,26 +23,31 @@ def setup_ngrok(local_url: str) -> str:
     return tunnel.public_url
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    if DEBUG:
-        public_url = setup_ngrok(DEBUG_URL)
+def get_public_url(debug_mode_on: bool) -> str:
+    if debug_mode_on:
+        return setup_ngrok(DEBUG_URL)
     else:
-        public_url = PROD_URL
+        return PROD_URL
 
-    tg_if = await tg_interface.build(
-        token=settings.TG_API_TOKEN,
-        webhook_url=public_url+TELEGRAM_WEBHOOK_ENDPOINT
-    )
-    app.state.tg_if = tg_if
 
+@asynccontextmanager
+async def lifespan(app_: FastAPI):
+
+    public_url = get_public_url(settings.DEBUG)
+
+    # Initialize sync resources
     loads = Loads.from_file_storage(settings.LOADS_NOSQL_LOC)
-    app.state.loads = loads
+    app_.state.loads = loads
 
-    yield
+    # Initialize async resources
+    async with AsyncTelegramInterface(
+            token=settings.TG_API_TOKEN,
+            webhook_url=public_url+settings.TG_WEBHOOK_ENDPOINT) as tg_if:
+        app_.state.tg_if = tg_if
+        # Yielding control
+        yield
 
-    await tg_interface.destroy(tg_if)
-
+    # No need to clean up for now
 
 app = FastAPI(lifespan=lifespan)
 
@@ -60,11 +63,11 @@ def _gen_response3(
             'workload': workload}
 
 
-@app.post(TELEGRAM_WEBHOOK_ENDPOINT)
+@app.post(settings.TG_WEBHOOK_ENDPOINT)
 async def process_tg_webhook(request: Request):
     data = await request.json()
-    tg_if = cast(Application, request.app.state.tg_if)
-    await tg_interface.webhook_entrypoint(data, tg_if)
+    tg_if = cast(AsyncTelegramInterface, request.app.state.tg_if)
+    await tg_if.webhook_entrypoint(data)
     return {'status': 'ok'}
 
 

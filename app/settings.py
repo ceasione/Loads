@@ -19,6 +19,9 @@ WEBHOOK_URL = WEBHOOK_BASE + WEBHOOK_PATH
 WEBHOOK_RESET_SECRET_TOKEN = os.getenv('WEBHOOK_RESET_SECRET_TOKEN')
 WEBHOOK_RESET_SECRET_LINK = os.getenv('WEBHOOK_RESET_SECRET_LINK')
 
+TG_WEBHOOK_ENDPOINT = os.getenv('TG_WEBHOOK_ENDPOINT', '/tgwhep')
 TG_API_TOKEN = os.getenv('TG_API_TOKEN', default=None)
 if TG_API_TOKEN is None:
     raise RuntimeError('TG_API_TOKEN environment variable not set')
+
+DEBUG = False if os.getenv('DEBUG', 'false') == 'false' else True
