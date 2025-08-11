@@ -16,12 +16,12 @@ class Load:
 
     ALLOWED_STAGES = ['start', 'engage', 'drive', 'clear', 'finish', 'history']
 
-    def __init__(self, _type, stage, start, engage, clear, finish, client_num, driver_name, driver_num,
+    def __init__(self, load_type, stage, start, engage, clear, finish, client_num, driver_name, driver_num,
                  _id=None, last_update=None):
         if stage not in Load.ALLOWED_STAGES:
             raise RuntimeError(f'Unknown stage: {stage}')
-        if _type not in ['internal', 'external']:
-            raise RuntimeError(f'Unknown Load type: {_type}. Accepted only ["internal", "external"]')
+        if load_type not in ['internal', 'external']:
+            raise RuntimeError(f'Unknown Load type: {load_type}. Accepted only ["internal", "external"]')
         if _id is None:
             random_data = str(random.getrandbits(256)).encode('utf-8')
             _id = _md5.md5(random_data).hexdigest()
@@ -33,7 +33,7 @@ class Load:
         self.LOADS = None
 
         self.id = _id
-        self.type = _type
+        self.type = load_type
         self.stage = stage
         self.stages = dict(
             start=start,
@@ -51,7 +51,7 @@ class Load:
 
     @classmethod
     def from_dict(cls, _dct):
-        return cls(_type=_dct['type'],
+        return cls(load_type=_dct['type'],
                    stage=_dct['stage'],
                    start=_dct['stages']['start'],
                    engage=_dct['stages']['engage'],
