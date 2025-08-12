@@ -49,6 +49,9 @@ class Load:
             num=driver_num
         )
 
+    def is_load_external(self) -> bool:
+        return True if self.type == 'external' else False
+
     @classmethod
     def from_dict(cls, _dct):
         return cls(load_type=_dct['type'],

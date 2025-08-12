@@ -1,3 +1,5 @@
+
+from pydantic import BaseModel
 import datetime
 import _md5
 import random
