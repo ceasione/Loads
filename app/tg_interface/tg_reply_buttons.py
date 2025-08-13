@@ -4,6 +4,7 @@ import asyncio
 from abc import ABC, abstractmethod
 from app.loads import Loads
 from app.tg_interface.tg_new_load_parser import LoadMessageParser, LoadMessageParseError
+from telegram import Bot, Update
 
 if TYPE_CHECKING:
     from typing import (
@@ -19,7 +20,12 @@ class AbstractCommand(ABC):
 
     @staticmethod
     @abstractmethod
-    async def action(update, context, loads: Loads, if_: 'AsyncTelegramInterface'):
+    async def action(
+        update: Update,
+        loads: Loads,
+        bot: Bot,
+        interface: 'AsyncTelegramInterface'
+    ) -> None:
         pass
 
 
@@ -28,11 +34,16 @@ class ShowActiveCommand(AbstractCommand):
     text = 'Show active'
 
     @staticmethod
-    async def action(update, context, loads: Loads, if_):
-        await if_.post_loads(
+    async def action(
+        update: Update,
+        loads: Loads,
+        bot: Bot,
+        interface: 'AsyncTelegramInterface'
+    ) -> None:
+        await interface.post_loads(
             chat_id=update.effective_chat.id,
             loads=tuple(loads.get_active_loads()),
-            context=context
+            bot=bot
         )
 
 
@@ -41,17 +52,22 @@ class ShowDeletedCommand(AbstractCommand):
     text = 'Show deleted'
 
     @staticmethod
-    async def action(update, context, loads: Loads, if_):
-        await if_.post_loads(
+    async def action(
+        update: Update,
+        loads: Loads,
+        bot: Bot,
+        interface: 'AsyncTelegramInterface'
+    ) -> None:
+        await interface.post_loads(
             chat_id=update.effective_chat.id,
             loads=tuple(loads.get_deleted_loads()),
-            context=context
+            bot=bot
         )
 
 
 class CreateNewCommand(AbstractCommand):
 
-    sample_external = \
+    SAMPLE_EXTERNAL = \
         "new:external\n" \
         "Полтава\n" \
         "Чернівці\n" \
@@ -61,7 +77,7 @@ class CreateNewCommand(AbstractCommand):
         "+380501231212\n\n" \
         "Client: +380953459607\n"
 
-    sample_internal = \
+    SAMPLE_INTERNAL = \
         "new:internal\n" \
         "Дніпро\n" \
         "Конотоп\n\n" \
@@ -72,16 +88,20 @@ class CreateNewCommand(AbstractCommand):
     text = 'Create new'
 
     @staticmethod
-    async def action(update, context, loads: Loads, if_):
-
+    async def action(
+        update: Update,
+        loads: Loads,
+        bot: Bot,
+        interface: 'AsyncTelegramInterface'
+    ) -> None:
         await asyncio.gather(
-            context.bot.send_message(
+            bot.send_message(
                 chat_id=update.effective_chat.id,
-                text=CreateNewCommand.sample_external
+                text=CreateNewCommand.SAMPLE_EXTERNAL
             ),
-            context.bot.send_message(
+            bot.send_message(
                 chat_id=update.effective_chat.id,
-                text=CreateNewCommand.sample_internal
+                text=CreateNewCommand.SAMPLE_INTERNAL
             )
         )
 
@@ -92,7 +112,12 @@ class ParseLoadCommand(AbstractCommand):
     text = 'new:'
 
     @staticmethod
-    async def action(update, context, loads: Loads, if_):
+    async def action(
+        update: Update,
+        loads: Loads,
+        bot: Bot,
+        interface: 'AsyncTelegramInterface'
+    ) -> None:
         message = update.message.text
 
         # 1. Get Load from message
@@ -107,10 +132,10 @@ class ParseLoadCommand(AbstractCommand):
         loads.add_load(load)
 
         # 3. Send Load to the User via Bot
-        await if_.post_loads(
+        await interface.post_loads(
             chat_id=update.effective_chat.id,
             loads=(load, ),
-            context=context,
+            bot=bot
         )
 
 

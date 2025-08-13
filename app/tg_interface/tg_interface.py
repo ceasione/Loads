@@ -1,6 +1,7 @@
-from typing import Tuple, Optional, Any, cast, Sequence, List
+from typing import Tuple, Optional, Any, cast, Sequence, TYPE_CHECKING
 import secrets
 from telegram import (
+    Bot,
     Update,
     ReplyKeyboardMarkup,
     InlineKeyboardMarkup
@@ -18,8 +19,31 @@ from app.loads import Loads, Load
 from app.tg_interface.tg_inline_buttons import get_kbd, BUTTONS
 from app.tg_interface.tg_reply_buttons import get_kbd as get_reply_kbd, COMMANDS
 
+if TYPE_CHECKING:
+    from telegram import Bot
+
 
 def craft_load_message(load: Load) -> Tuple[str, InlineKeyboardMarkup]:
+    """
+    Builds a textual description and inline keyboard for a given load.
+
+    The generated message includes:
+        - Start and finish stage locations.
+        - Driver's name and phone number.
+        - Current stage and the last update timestamp.
+
+    The inline keyboard is created using `get_kbd()` with the load's ID and
+    external status.
+
+    Args:
+        load (Load): The load instance containing stage, driver, and status
+            information.
+
+    Returns:
+        Tuple[str, InlineKeyboardMarkup]:
+            - A formatted message string describing the load.
+            - An inline keyboard for interacting with the load.
+    """
     craft = \
         f'{load.stages["start"]} ... {load.stages["finish"]}\n'\
         f'{load.driver["name"]}, +{load.driver["num"]}\n'\
@@ -64,16 +88,32 @@ class AsyncTelegramInterface:
         await self.app.stop()
         await self.app.shutdown()
 
-    async def _prepare_chat(self, update, _context):
+    @staticmethod
+    async def _prepare_chat(chat_id: int, loads: Loads, bot: Bot) -> None:
         """
-        Sends a message with quantity of loads and set
-        ReplyKeyboardMarkup to show a keyboard at the bottom of chat.
+        Sends a message to the specified chat displaying the number of active loads.
+
+        This method sends a reply keyboard with control commands to the chat for users
+        to be able to control the bot
+
+        Args:
+            chat_id (int): Unique identifier of the target chat.
+            loads (Loads): An object that provides the `expose_active_loads()` method
+                to retrieve the list of active loads.
+            bot (Bot): A PTB Bot instance used to send the message.
+
+        Returns:
+            None
         """
         keyboard = get_reply_kbd()
-        reply_keyboard = ReplyKeyboardMarkup(cast(Sequence, keyboard), resize_keyboard=True, one_time_keyboard=True)
-        active_loads_qty: int = len(self.loads.expose_active_loads())
-        await self.app.bot.send_message(
-            chat_id=update.effective_chat.id,
+        reply_keyboard = ReplyKeyboardMarkup(
+            cast(Sequence, keyboard),
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+        active_loads_qty: int = len(loads.expose_active_loads())
+        await bot.send_message(
+            chat_id=chat_id,
             text=f'Active loads: {active_loads_qty}',
             reply_markup=reply_keyboard,
             disable_notification=True
@@ -83,32 +123,34 @@ class AsyncTelegramInterface:
     async def post_loads(
             chat_id: int,
             loads: Tuple[Load, ...],
-            context: ContextTypes.DEFAULT_TYPE,
-
+            bot: Bot
     ) -> None:
+        """
+        Sends messages to the specified chat for each load in the provided tuple.
 
+        For each load, this method uses `craft_load_message()` to generate the
+        message text and associated inline keyboard, then sends it via the given bot.
+        After all loads are posted, it sends a final summary message with the
+        total number of loads sent.
+
+        Args:
+            chat_id (int): Unique identifier of the target chat.
+            loads (Tuple[Load, ...]): A tuple of `Load` instances to be posted.
+            bot (Bot): A PTB Bot instance used to send the messages.
+
+        Returns:
+            None
+        """
         for load in loads:
             text, kbd = craft_load_message(load)
-            await context.bot.send_message(
+            await bot.send_message(
                 chat_id=chat_id,
                 text=text,
                 reply_markup=kbd
             )
-        await context.bot.send_message(
+        await bot.send_message(
             chat_id=chat_id,
             text=f'Total {len(loads)} loads'
-        )
-
-    @staticmethod
-    async def post_message(
-            chat_id: int,
-            message: str,
-            context: ContextTypes.DEFAULT_TYPE,
-
-    ) -> None:
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=message
         )
 
     async def handle_start(
@@ -116,33 +158,90 @@ class AsyncTelegramInterface:
             update: Update,
             context: ContextTypes.DEFAULT_TYPE) -> None:
         """
-        Handles the /start command. For this command we are preparing
-        the ReplyKeyboardMarkup for further bot controls
+        Handler for the /start command. Prepares the chat interface.
+
+        This method triggers `_prepare_chat()` to send an initial message and a
+        reply keyboard for further bot interactions.
+
+        Args:
+            update (Update): The incoming update containing message and chat data.
+            context (ContextTypes.DEFAULT_TYPE): The context for the callback,
+                providing the bot instance and other runtime data.
+
+        Returns:
+            None
         """
-        await self._prepare_chat(update, context)
+        await self._prepare_chat(
+            update.effective_chat.id,
+            self.loads,
+            context.bot
+        )
 
     async def handle_text(
             self,
             update: Update,
             context: ContextTypes.DEFAULT_TYPE
     ) -> None:
+        """
+        Handles incoming text messages by matching them against predefined commands.
+
+        Iterates over the `COMMANDS` collection and executes the associated action
+        for the first command whose text is found in the incoming message. If no
+        command matches, sends a fallback message indicating the text was not
+        understood.
+
+        Args:
+            update (Update): The incoming update containing the user's message.
+            context (ContextTypes.DEFAULT_TYPE): The context for the callback,
+                providing the bot instance and other runtime data.
+
+        Returns:
+            None
+
+        Side Effects:
+            - Executes a command's action if matched.
+            - Sends a fallback message to the chat if no match is found.
+        """
         message = update.message.text
 
         for cmd in COMMANDS:
             if cmd.text in message:
-                await cmd.action(update, context, loads=self.loads, if_=self)
+                await cmd.action(
+                    update=update,
+                    loads=self.loads,
+                    bot=context.bot,
+                    interface=self
+                )
                 return
-
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=f'Щось незрозуміле: {message}'
+            text=f'✋ {message}?'
         )
-
 
     async def handle_inline_buttons(
             self,
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE):
+            _context: ContextTypes.DEFAULT_TYPE):
+        """
+        Handler for inline button clicks from the loads messages.
+
+        Matches the callback data from the clicked button against entries in the
+        `BUTTONS` collection. Executes the associated button's `process_click()`
+        method, which may update or delete a load. If the load is deleted, the
+        original message is replaced with "Deleted". If the load is updated,
+        the message is edited with the new load details and updated inline keyboard.
+
+        Args:
+            update (Update): The incoming update containing the callback query data.
+            _context (ContextTypes.DEFAULT_TYPE): The callback context. Unused here.
+
+        Returns:
+            None
+
+        Side Effects:
+            - Edits the bot's message in response to the button click.
+            - Sends a callback query answer to acknowledge the click.
+        """
         callback_data = update.callback_query.data
         for btn in BUTTONS:
             if btn.callback_prefix in callback_data:
@@ -170,5 +269,21 @@ class AsyncTelegramInterface:
         # raise context.error
 
     async def webhook_entrypoint(self, data: dict[str, Any]):
+        """
+        Entry point for processing incoming webhook updates.
+
+        Converts the raw webhook payload into an `Update` object and passes it to
+        the application's bot for processing.
+
+        Args:
+            data (dict[str, Any]): The JSON payload received from the
+            FastAPI webhook endpoint.
+
+        Returns:
+            None
+
+        Side Effects:
+            Passes the update to `self.app.process_update()` for handling.
+        """
         update = Update.de_json(data, self.app.bot)
         await self.app.process_update(update)
