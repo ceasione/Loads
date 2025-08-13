@@ -1,6 +1,5 @@
 import datetime
-import _md5
-import random
+import secrets
 from app import settings
 import json
 LOADS_NOSQL_LOC = settings.LOADS_NOSQL_LOC
@@ -23,8 +22,7 @@ class Load:
         if load_type not in ['internal', 'external']:
             raise RuntimeError(f'Unknown Load type: {load_type}. Accepted only ["internal", "external"]')
         if _id is None:
-            random_data = str(random.getrandbits(256)).encode('utf-8')
-            _id = _md5.md5(random_data).hexdigest()
+            _id = secrets.token_hex(nbytes=16)  # Output is a string of nbytes*2 chars
         if last_update is None:
             last_update = datetime.datetime.now()
         else:
