@@ -19,9 +19,9 @@ class AbstractButton(ABC):
 
     @staticmethod
     def get_load_id(callback_data: str) -> str:
-        _command, load_id = callback_data.split(':', 1)
-        if len(load_id) != 32:
-            raise RuntimeError('Invalid load_id')
+        command, sep, load_id = callback_data.partition(':')
+        if sep != ':' or len(load_id) != 32:
+            raise RuntimeError('Invalid load_id or callback format')
         return load_id
 
     @staticmethod
