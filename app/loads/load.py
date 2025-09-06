@@ -1,5 +1,4 @@
 import secrets
-from secrets import token_hex
 from datetime import datetime
 
 from pydantic import (
@@ -38,7 +37,7 @@ class Load(BaseModel):
     last_update: datetime = Field(default_factory=lambda: datetime.now())
 
     @model_validator(mode='after')
-    def restrict_engage_clear_for_internal_load_type(self):
+    def restrict_some_stages_for_internal_load(self):
         if self.load_type == 'internal':
             if self.stage in ('engage', 'clear'):
                 raise ValueError('Internal Load must not have "engage" or "clear" stage')
@@ -59,6 +58,3 @@ class Load(BaseModel):
     def change_stage(self, new_stage: ALLOWED_STAGES):
         self.stage = new_stage
         self.last_update = datetime.now()
-
-    # TODO Revalidate on change
-    # TODO Save to db on change
