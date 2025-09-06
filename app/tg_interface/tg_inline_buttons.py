@@ -2,7 +2,8 @@
 from typing import Optional, List
 from abc import ABC, abstractmethod
 from telegram import InlineKeyboardButton
-from app.loads import Loads, Load
+from app.loads.loads import Loads
+from app.loads.load import Load
 
 
 class AbstractButton(ABC):

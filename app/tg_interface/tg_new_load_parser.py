@@ -1,5 +1,5 @@
 
-from app.loads import Load
+from app.loads.load import Load
 
 
 class LoadMessageParseError(RuntimeError):

@@ -2,7 +2,7 @@
 from typing import List, TYPE_CHECKING
 import asyncio
 from abc import ABC, abstractmethod
-from app.loads import Loads
+from app.loads.loads import Loads
 from app.tg_interface.tg_new_load_parser import LoadMessageParser, LoadMessageParseError
 from telegram import Bot, Update
 

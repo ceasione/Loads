@@ -12,6 +12,13 @@ TELEGRAM_BOT_APIKEY = os.getenv('TELEGRAM_BOT_APIKEY')
 DEVELOPER_BOT_APIKEY = os.getenv('DEVELOPER_BOT_APIKEY')
 
 
+# DB_HOST = os.environ['DB_HOST']
+# DB_PORT = os.environ['DB_PORT']
+# DB_NAME = os.environ['DB_NAME']
+# DB_USER = os.environ['DB_USER']
+# DB_PASSWORD = os.environ['DB_PASSWORD']
+DB_CONNECTION_URL=os.environ['DB_CONNECTION_URL']
+
 WEBHOOK_BASE = os.getenv('WEBHOOK_BASE', 'https://api.intersmartgroup.com')
 WEBHOOK_PATH = os.getenv('WEBHOOK_PATH', '/s2/loads-tgbot')
 WEBHOOK_URL = WEBHOOK_BASE + WEBHOOK_PATH
