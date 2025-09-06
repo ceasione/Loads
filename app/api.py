@@ -6,7 +6,8 @@ from fastapi import FastAPI, Request
 from pyngrok import ngrok
 from typing import Optional, cast
 from app.tg_interface.tg_interface import AsyncTelegramInterface
-from app.loads import Loads, Load
+from app.loads.loads import Loads
+from app.loads.load import Load
 from telegram.ext import Application
 from app import settings
 
@@ -24,32 +25,33 @@ def setup_ngrok(local_url: str) -> str:
 
 
 def get_public_url(debug_mode_on: bool) -> str:
-    if debug_mode_on:
-        return setup_ngrok(DEBUG_URL)
-    else:
-        return PROD_URL
+    return setup_ngrok(DEBUG_URL) if debug_mode_on else PROD_URL
+    # if debug_mode_on:
+    #     return setup_ngrok(DEBUG_URL)
+    # else:
+    #     return PROD_URL
 
 
 @asynccontextmanager
-async def lifespan(app_: FastAPI):
+async def lifespan(application: FastAPI):
 
     public_url = get_public_url(settings.DEBUG)
 
-    # Initialize sync resources
-    loads = Loads.from_file_storage(settings.LOADS_NOSQL_LOC)
-    app_.state.loads = loads
+    # Initialize resources
+    async with Loads(settings.DB_CONNECTION_URL) as loads:
 
-    # Initialize async resources
-    async with AsyncTelegramInterface(
-            token=settings.TG_API_TOKEN,
-            webhook_url=public_url+settings.TG_WEBHOOK_ENDPOINT,
-            chat_id=settings.TELEGRAM_LOADS_CHAT_ID,
-            loads=loads) as tg_if:
-        app_.state.tg_if = tg_if
-        # Yielding control
-        yield
+        async with AsyncTelegramInterface(
+                token=settings.TG_API_TOKEN,
+                webhook_url=public_url+settings.TG_WEBHOOK_ENDPOINT,
+                chat_id=settings.TELEGRAM_LOADS_CHAT_ID,
+                loads=loads) as tg_if:
 
-    # No need to clean up after
+            application.state.tg_if = tg_if
+            application.state.loads = loads
+            # Yielding control
+            yield
+
+    # No need to clean up after since we were at context managers
 
 app = FastAPI(lifespan=lifespan)
 
