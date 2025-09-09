@@ -180,3 +180,14 @@ async def test_insert_driver_usert(loads_instance, driver_name, driver_phone, ex
 async def test_insert_driver_wrong_number(loads_instance, driver_name, driver_phone):
     with pytest.raises(ValueError):
         await loads_instance._insert_driver(driver_name, driver_phone)
+
+@pytest.mark.integration
+async def test_get_qty_of_actives(loads_instance):
+    actives_count = await loads_instance.get_qty_of_actives()
+    assert actives_count == 3  # As expected in test data
+
+
+@pytest.mark.integration
+async def test_get_qty_of_historicals(loads_instance):
+    historicals_count = await loads_instance.get_qty_of_historicals()
+    assert historicals_count == 1

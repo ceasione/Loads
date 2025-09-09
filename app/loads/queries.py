@@ -201,3 +201,15 @@ UPDATE_LOAD = """
         l.loads_id = %s
     returning l.loads_id
 """
+
+COUNT_ACTIVE_LOADS = """
+    select count(current_status_id) as actives_count 
+    from loads l
+    where l.current_status_id in (1, 2, 3, 4, 5);
+"""
+
+COUNT_HISTORICAL_LOADS = """
+    select count(current_status_id) as historical_count 
+    from loads l
+    where l.current_status_id = 6;
+"""

@@ -43,6 +43,14 @@ class Loads:
             return self._convert_cte_row_to_load(rows[0])
         return None
 
+    async def get_qty_of_actives(self):
+        rows = await self.execute_query(query=queries.COUNT_ACTIVE_LOADS)
+        return rows[0][0]
+
+    async def get_qty_of_historicals(self):
+        rows = await self.execute_query(query=queries.COUNT_HISTORICAL_LOADS)
+        return rows[0][0]
+
     async def get_actives(self) -> list[Load]:
         return await self._get_loads_by_fq(filter_query=queries.FILTER_ACTIVE_LOADS)
 
