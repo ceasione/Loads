@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from fastapi import FastAPI, Request
 from pyngrok import ngrok
 from typing import Optional, cast
-from app.tg_interface.tg_interface import AsyncTelegramInterface
+from app.tg_interface.interface import AsyncTelegramInterface
 from app.loads.loads import Loads
 from app.loads.load import Load
 from telegram.ext import Application

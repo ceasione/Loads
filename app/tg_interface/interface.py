@@ -3,8 +3,8 @@ from typing import Tuple, Optional, Any, cast, Sequence, TYPE_CHECKING
 import secrets
 from app.loads.loads import Loads
 from app.loads.load import Load
-from app.tg_interface.tg_inline_buttons import get_kbd, BUTTONS
-from app.tg_interface.tg_reply_buttons import get_kbd as get_reply_kbd, COMMANDS
+from app.tg_interface.inline_buttons import get_kbd, BUTTONS
+from app.tg_interface.reply_buttons import get_kbd as get_reply_kbd, COMMANDS
 from telegram import (
     Bot,
     Update,
