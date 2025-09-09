@@ -108,12 +108,12 @@ class AsyncTelegramInterface:
             None
         """
         keyboard = get_reply_kbd()
+        active_loads_qty: int = await loads.get_qty_of_actives()
         reply_keyboard = ReplyKeyboardMarkup(
-            cast(Sequence, keyboard),
+            keyboard,
             resize_keyboard=True,
             one_time_keyboard=True
         )
-        active_loads_qty: int = len(loads.expose_active_loads())
         await bot.send_message(
             chat_id=chat_id,
             text=f'Active loads: {active_loads_qty}',
