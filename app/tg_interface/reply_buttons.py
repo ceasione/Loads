@@ -154,14 +154,8 @@ LAYOUT = (
 
 
 def get_kbd() -> List[List[str]]:
-    layout = LAYOUT
-
-    keyboard = []
-    for layout_line in layout:
-        keyboard_line = []
-        for button in layout_line:
-            keyboard_line.append(
-                button.text
-            )
-        keyboard.append(keyboard_line)
-    return keyboard
+    """
+    Remake LAYOUT so each button is represented by its label as string
+    Preserves structure of the LAYOUT.
+    """
+    return [[button.text for button in line] for line in LAYOUT]
