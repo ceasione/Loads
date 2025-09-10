@@ -46,13 +46,15 @@ def craft_load_message(load: Load) -> Tuple[str, InlineKeyboardMarkup]:
             - A formatted message string describing the load.
             - An inline keyboard for interacting with the load.
     """
+    pass
     craft = \
-        f'{load.stages["start"]} ... {load.stages["finish"]}\n'\
-        f'{load.driver["name"]}, +{load.driver["num"]}\n'\
+        f'{load.stages.start} ... {load.stages.finish}\n'\
+        f'{load.driver_name}, +{load.driver_num}\n'\
         f'\nStage: {load.stage} ({load.last_update})'
+
     reply_markup = InlineKeyboardMarkup(
         get_kbd(
-            load_id=load.id,
+            load_id=load.load_id,
             external_layout=load.is_load_external()
         )
     )

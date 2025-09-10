@@ -81,10 +81,10 @@ async def process_tg_webhook(request: Request):
 @app.get('/s3/loads')
 async def get_loads(request: Request):
     loads = cast(Loads, request.app.state.loads)
-    active = loads.expose_active_loads()
+    active_loads = [load.safe_dump() for load in await loads.get_actives()]
     return _gen_response3(
         json_status='success',
-        workload={'len': len(active), 'loads': active}
+        workload={'len': len(active_loads), 'loads': active_loads}
     )
 
 

@@ -58,3 +58,12 @@ class Load(BaseModel):
     def change_stage(self, new_stage: ALLOWED_STAGES):
         self.stage = new_stage
         self.last_update = datetime.now()
+
+    def safe_dump(self) -> dict:
+        return self.model_dump(
+            exclude={
+                'client_num',
+                'driver_num',
+                'driver_name'
+            }
+        )
