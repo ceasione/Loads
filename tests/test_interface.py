@@ -94,3 +94,57 @@ async def test_handle_start_calls_prepare_chat(mocked_iface):
         mocked_iface.loads,
         fake_context.bot
     )
+
+
+@pytest.mark.asyncio
+async def test_handle_text_matches_command(mocked_iface):
+
+    # Prepare a fake command
+    fake_action = AsyncMock()
+    fake_cmd = MagicMock()
+    fake_cmd.text = "Test command"
+    fake_cmd.action = fake_action
+
+    # Patch COMMANDS temporarily for this test
+    with patch("app.tg_interface.interface.COMMANDS", (fake_cmd, )):
+
+        fake_update = MagicMock()
+        fake_update.message.text = "Test command"
+        fake_update.effective_chat.id = 123
+
+        fake_bot = AsyncMock()
+        fake_context = MagicMock()
+        fake_context.bot = fake_bot
+
+        await mocked_iface.handle_text(fake_update, fake_context)
+
+        fake_action.assert_awaited_once_with(
+            update=fake_update,
+            loads=mocked_iface.loads,
+            bot=fake_context.bot,
+            interface=mocked_iface
+        )
+
+        fake_context.bot.send_message.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_handle_text_no_match_sends_fallback(mocked_iface):
+
+    # Patch COMMANDS to be empty
+    with patch("app.tg_interface.interface.COMMANDS", []):
+        # Fake update with message that matches nothing
+        fake_update = MagicMock()
+        fake_update.message.text = "unknown text"
+        fake_update.effective_chat.id = 123
+
+        fake_bot = AsyncMock()
+        fake_context = MagicMock()
+        fake_context.bot = fake_bot
+
+        await mocked_iface.handle_text(fake_update, fake_context)
+
+        fake_bot.send_message.assert_awaited_once_with(
+            chat_id=fake_update.effective_chat.id,
+            text=f"✋ {fake_update.message.text}?"
+        )
