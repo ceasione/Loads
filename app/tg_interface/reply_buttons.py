@@ -118,25 +118,31 @@ class ParseLoadCommand(AbstractCommand):
         bot: Bot,
         interface: 'AsyncTelegramInterface'
     ) -> None:
-        message = update.message.text
+        try:
+            message = update.message.text
 
-        # 1. Get Load from message
-        if 'new:external' in message:
-            load = LoadMessageParser.external(message)
-        elif 'new:internal' in message:
-            load = LoadMessageParser.internal(message)
-        else:
-            raise LoadMessageParseError(message)
+            # 1. Get Load from message
+            if 'new:external' in message:
+                load = LoadMessageParser.external(message)
+            elif 'new:internal' in message:
+                load = LoadMessageParser.internal(message)
+            else:
+                raise LoadMessageParseError(message)
 
-        # 2. Add Load to database
-        loads.add_load(load)
+            # 2. Add Load to database
+            await loads.add(load)
 
-        # 3. Send Load to the User via Bot
-        await interface.post_loads(
-            chat_id=update.effective_chat.id,
-            loads=(load, ),
-            bot=bot
-        )
+            # 3. Send Load to the User via Bot
+            await interface.post_loads(
+                chat_id=update.effective_chat.id,
+                loads=[load],
+                bot=bot
+            )
+        except LoadMessageParseError as e:
+            await bot.send_message(
+                chat_id=update.effective_chat.id,
+                text='✋ Ой помилочка! Перевірте чи все вірно вказано'
+            )
 
 
 COMMANDS = (
