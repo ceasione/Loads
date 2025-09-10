@@ -16,6 +16,38 @@ def test_get_reply_kbd():
 def reply_kbd():
     return reply_buttons.get_kbd()
 
+@pytest_asyncio.fixture
+async def mocked_iface():
+    with patch('app.tg_interface.interface.ApplicationBuilder') \
+        as mock_app_builder_cls:
+
+        mock_app = AsyncMock()
+
+        mock_app_builder = MagicMock()
+        mock_app_builder.token.return_value = mock_app_builder
+        mock_app_builder.build.return_value = mock_app
+
+        mock_app_builder_cls.return_value = mock_app_builder
+
+        mock_loads = AsyncMock()
+        iface = AsyncTelegramInterface(
+            token='some_telegram_token:123457890',
+            webhook_url='/telegram-webhook-url/',
+            chat_id=-123498765,
+            loads=mock_loads
+        )
+        async with iface:
+            yield iface
+
+
+@pytest.mark.asyncio
+async def test_interface_init(mocked_iface):
+    mocked_iface.app.add_error_handler.assert_called_once()
+    mocked_iface.app.add_handler.assert_called()
+    mocked_iface.app.initialize.assert_awaited_once()
+    mocked_iface.app.start.assert_awaited_once()
+    mocked_iface.app.bot.set_webhook.assert_awaited_once()
+
 
 @patch('app.tg_interface.interface.ReplyKeyboardMarkup')
 async def test_prepare_chat(mock_reply_kbd_markup, reply_kbd):
@@ -41,3 +73,7 @@ async def test_prepare_chat(mock_reply_kbd_markup, reply_kbd):
         disable_notification = True
     )
 
+
+async def test_handle_start():
+
+    pass
