@@ -71,6 +71,11 @@ class Loads:
         )
         return load_id
 
+    async def change_stage(self, load: Load, new_stage) -> Load:
+        load.change_stage(new_stage)
+        await self.update(load)
+        return load
+
     async def update(self, load: Load) -> str:
 
         return await self._update_load(load)

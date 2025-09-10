@@ -27,9 +27,9 @@ class AbstractButton(ABC):
 
     @staticmethod
     @abstractmethod
-    def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
+    async def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
         """
-        returns edited Load instance or None if load were deleted
+        returns edited Load instance or None if load was deleted
         """
         pass
 
@@ -39,10 +39,10 @@ class SetStartButton(AbstractButton):
     callback_prefix = 'set_start:'
 
     @staticmethod
-    def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
+    async def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
         load_id = extract_id_from_callback_data(callback_data)
-        load: Load = loads.get_load_by_id(load_id)
-        load.change_stage('start')
+        load: Load = await loads.get_load_by_id(load_id)
+        await loads.change_stage(load, 'start')
         return load
 
 
@@ -51,10 +51,10 @@ class SetEngagedButton(AbstractButton):
     callback_prefix = 'set_engage:'
 
     @staticmethod
-    def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
+    async def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
         load_id = extract_id_from_callback_data(callback_data)
-        load: Load = loads.get_load_by_id(load_id)
-        load.change_stage('engage')
+        load: Load = await loads.get_load_by_id(load_id)
+        await loads.change_stage(load, 'engage')
         return load
 
 
@@ -63,10 +63,10 @@ class SetDriveButton(AbstractButton):
     callback_prefix = 'set_drive:'
 
     @staticmethod
-    def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
+    async def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
         load_id = extract_id_from_callback_data(callback_data)
-        load: Load = loads.get_load_by_id(load_id)
-        load.change_stage('drive')
+        load: Load = await loads.get_load_by_id(load_id)
+        await loads.change_stage(load, 'drive')
         return load
 
 
@@ -75,10 +75,10 @@ class SetClearButton(AbstractButton):
     callback_prefix = 'set_clear:'
 
     @staticmethod
-    def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
+    async def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
         load_id = extract_id_from_callback_data(callback_data)
-        load: Load = loads.get_load_by_id(load_id)
-        load.change_stage('clear')
+        load: Load = await loads.get_load_by_id(load_id)
+        await loads.change_stage(load, 'clear')
         return load
 
 class SetFinishButton(AbstractButton):
@@ -86,10 +86,10 @@ class SetFinishButton(AbstractButton):
     callback_prefix = 'set_finish:'
 
     @staticmethod
-    def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
+    async def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
         load_id = extract_id_from_callback_data(callback_data)
-        load: Load = loads.get_load_by_id(load_id)
-        load.change_stage('finish')
+        load: Load = await loads.get_load_by_id(load_id)
+        await loads.change_stage(load, 'finish')
         return load
 
 class DeleteButton(AbstractButton):
@@ -97,10 +97,10 @@ class DeleteButton(AbstractButton):
     callback_prefix = 'delete:'
 
     @staticmethod
-    def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
+    async def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
         load_id = extract_id_from_callback_data(callback_data)
-        load: Load = loads.get_load_by_id(load_id)
-        load.change_stage('history')
+        load: Load = await loads.get_load_by_id(load_id)
+        await loads.change_stage(load, 'history')
         return None
 
 
