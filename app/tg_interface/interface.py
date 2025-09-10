@@ -247,7 +247,7 @@ class AsyncTelegramInterface:
         callback_data = update.callback_query.data
         for btn in BUTTONS:
             if btn.callback_prefix in callback_data:
-                edited_load = btn.process_click(
+                edited_load = await btn.process_click(
                     callback_data=callback_data,
                     loads=self.loads
                 )
