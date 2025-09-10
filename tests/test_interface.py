@@ -3,6 +3,7 @@ import pytest, pytest_asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 from app.tg_interface.interface import AsyncTelegramInterface
 from app.tg_interface import reply_buttons
+from telegram import Update
 
 
 def test_get_reply_kbd():
@@ -74,6 +75,22 @@ async def test_prepare_chat(mock_reply_kbd_markup, reply_kbd):
     )
 
 
-async def test_handle_start():
+@pytest.mark.asyncio
+async def test_handle_start_calls_prepare_chat(mocked_iface):
 
-    pass
+    mocked_iface._prepare_chat = AsyncMock()
+
+    fake_update = MagicMock()
+    fake_update.effective_chat.id = 1234567890
+
+    fake_bot = AsyncMock()
+    fake_context = MagicMock()
+    fake_context.bot = fake_bot
+
+    await mocked_iface.handle_start(fake_update, fake_context)
+
+    mocked_iface._prepare_chat.assert_awaited_once_with(
+        fake_update.effective_chat.id,
+        mocked_iface.loads,
+        fake_context.bot
+    )
