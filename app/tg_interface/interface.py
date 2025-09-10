@@ -1,5 +1,5 @@
 
-from typing import Tuple, Optional, Any, cast, Sequence, TYPE_CHECKING
+from typing import List, Tuple, Optional, Any, TYPE_CHECKING
 import secrets
 from app.loads.loads import Loads
 from app.loads.load import Load
@@ -124,7 +124,7 @@ class AsyncTelegramInterface:
     @staticmethod
     async def post_loads(
             chat_id: int,
-            loads: Tuple[Load, ...],
+            loads: List[Load],
             bot: Bot
     ) -> None:
         """

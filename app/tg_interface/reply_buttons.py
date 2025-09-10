@@ -42,7 +42,7 @@ class ShowActiveCommand(AbstractCommand):
     ) -> None:
         await interface.post_loads(
             chat_id=update.effective_chat.id,
-            loads=tuple(loads.get_active_loads()),
+            loads = await loads.get_actives(),
             bot=bot
         )
 
@@ -60,7 +60,7 @@ class ShowDeletedCommand(AbstractCommand):
     ) -> None:
         await interface.post_loads(
             chat_id=update.effective_chat.id,
-            loads=tuple(loads.get_deleted_loads()),
+            loads = await loads.get_historicals(),
             bot=bot
         )
 
