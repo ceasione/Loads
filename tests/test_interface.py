@@ -148,3 +148,53 @@ async def test_handle_text_no_match_sends_fallback(mocked_iface):
             chat_id=fake_update.effective_chat.id,
             text=f"✋ {fake_update.message.text}?"
         )
+
+
+@pytest.mark.asyncio
+async def test_handle_inline_buttons_deleted(mocked_iface):
+    fake_button = AsyncMock()
+    fake_button.callback_prefix = "btn_"
+    fake_button.process_click.return_value = None
+
+    with patch("app.tg_interface.interface.BUTTONS", (fake_button, )):
+        fake_callback_query = AsyncMock()
+        fake_callback_query.data = "btn_123"
+        fake_update = MagicMock(spec=Update)
+        fake_update.callback_query = fake_callback_query
+
+        await mocked_iface.handle_inline_buttons(fake_update, None)
+
+        fake_button.process_click.assert_awaited_once_with(
+            callback_data="btn_123",
+            loads=mocked_iface.loads
+        )
+        fake_callback_query.edit_message_text.assert_awaited_once_with("Deleted")
+        fake_callback_query.answer.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_handle_inline_buttons_edited(mocked_iface):
+    fake_button = AsyncMock()
+    fake_button.callback_prefix = "btn_"
+    edited_load = {'some': 'data'}
+    fake_button.process_click.return_value = edited_load
+
+    with patch("app.tg_interface.interface.BUTTONS", (fake_button, )), \
+         patch("app.tg_interface.interface.craft_load_message", return_value=('Edited message', 'keyboard')):
+
+        fake_callback_query = AsyncMock()
+        fake_callback_query.data = "btn_123"
+        fake_update = MagicMock(spec=Update)
+        fake_update.callback_query = fake_callback_query
+
+        await mocked_iface.handle_inline_buttons(fake_update, None)
+
+        fake_button.process_click.assert_awaited_once_with(
+            callback_data="btn_123",
+            loads=mocked_iface.loads
+        )
+        fake_callback_query.edit_message_text.assert_awaited_once_with(
+            text='Edited message',
+            reply_markup='keyboard'
+        )
+        fake_callback_query.answer.assert_awaited_once()
