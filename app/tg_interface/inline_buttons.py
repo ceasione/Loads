@@ -6,6 +6,13 @@ from app.loads.loads import Loads
 from app.loads.load import Load
 
 
+def extract_id_from_callback_data(callback_data: str) -> str:
+    command, sep, load_id = callback_data.partition(':')
+    if sep != ':' or len(load_id) != 32:
+        raise RuntimeError('Invalid load_id or callback format')
+    return load_id
+
+
 class AbstractButton(ABC):
     button_name: Optional[str] = None
     callback_prefix: Optional[str] = None
@@ -17,13 +24,6 @@ class AbstractButton(ABC):
         if cls.callback_prefix is None:
             raise ValueError(f"{cls.__name__} does not define callback_prefix")
         return cls.callback_prefix+load_id
-
-    @staticmethod
-    def get_load_id(callback_data: str) -> str:
-        command, sep, load_id = callback_data.partition(':')
-        if sep != ':' or len(load_id) != 32:
-            raise RuntimeError('Invalid load_id or callback format')
-        return load_id
 
     @staticmethod
     @abstractmethod
@@ -40,7 +40,7 @@ class SetStartButton(AbstractButton):
 
     @staticmethod
     def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
-        load_id = AbstractButton.get_load_id(callback_data)
+        load_id = extract_id_from_callback_data(callback_data)
         load: Load = loads.get_load_by_id(load_id)
         load.change_stage('start')
         return load
@@ -52,7 +52,7 @@ class SetEngagedButton(AbstractButton):
 
     @staticmethod
     def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
-        load_id = AbstractButton.get_load_id(callback_data)
+        load_id = extract_id_from_callback_data(callback_data)
         load: Load = loads.get_load_by_id(load_id)
         load.change_stage('engage')
         return load
@@ -64,7 +64,7 @@ class SetDriveButton(AbstractButton):
 
     @staticmethod
     def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
-        load_id = AbstractButton.get_load_id(callback_data)
+        load_id = extract_id_from_callback_data(callback_data)
         load: Load = loads.get_load_by_id(load_id)
         load.change_stage('drive')
         return load
@@ -76,7 +76,7 @@ class SetClearButton(AbstractButton):
 
     @staticmethod
     def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
-        load_id = AbstractButton.get_load_id(callback_data)
+        load_id = extract_id_from_callback_data(callback_data)
         load: Load = loads.get_load_by_id(load_id)
         load.change_stage('clear')
         return load
@@ -87,7 +87,7 @@ class SetFinishButton(AbstractButton):
 
     @staticmethod
     def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
-        load_id = AbstractButton.get_load_id(callback_data)
+        load_id = extract_id_from_callback_data(callback_data)
         load: Load = loads.get_load_by_id(load_id)
         load.change_stage('finish')
         return load
@@ -98,7 +98,7 @@ class DeleteButton(AbstractButton):
 
     @staticmethod
     def process_click(callback_data: str, loads: Loads) -> Optional[Load]:
-        load_id = AbstractButton.get_load_id(callback_data)
+        load_id = extract_id_from_callback_data(callback_data)
         load: Load = loads.get_load_by_id(load_id)
         load.change_stage('history')
         return None
