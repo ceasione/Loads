@@ -1,5 +1,5 @@
 
-from app.loads.load import Load
+from app.loads.load import Load, Stages
 
 
 class LoadMessageParseError(RuntimeError):
@@ -32,29 +32,33 @@ class LoadMessageParser:
             driver_num = lines[7].strip().replace('+', '')
             client_num = lines[9].replace('Client: ', '').strip().replace('+', '')
             if not all(
-                    (
-                            start_place,
-                            engage_place,
-                            clear_place,
-                            finish_place,
-                            driver_name,
-                            driver_num,
-                            client_num
-                    )
+                (
+                    start_place,
+                    engage_place,
+                    clear_place,
+                    finish_place,
+                    driver_name,
+                    driver_num,
+                    client_num
+                )
             ):
                 raise LoadMessageParseError(message)
         except IndexError as e:
             raise LoadMessageParseError(message) from e
 
-        return Load(load_type='external',
-                    stage='history',
-                    start=start_place,
-                    engage=engage_place,
-                    clear=clear_place,
-                    finish=finish_place,
-                    client_num=client_num,
-                    driver_name=driver_name,
-                    driver_num=driver_num)
+        return Load(
+            type='external',
+            stage='history',
+            stages=Stages(
+                start=start_place,
+                engage=engage_place,
+                clear=clear_place,
+                finish=finish_place
+            ),
+            client_num=client_num,
+            driver_name=driver_name,
+            driver_num=driver_num
+        )
 
     @staticmethod
     def internal(message: str) -> Load:
@@ -91,12 +95,16 @@ class LoadMessageParser:
         except IndexError as e:
             raise LoadMessageParseError(message) from e
 
-        return Load(load_type='internal',
-                    stage='history',
-                    start=start_place,
-                    engage=None,
-                    clear=None,
-                    finish=finish_place,
-                    client_num=client_num,
-                    driver_name=driver_name,
-                    driver_num=driver_num)
+        return Load(
+            type='internal',
+            stage='history',
+            stages=Stages(
+                start=start_place,
+                engage=None,
+                clear=None,
+                finish=finish_place
+            ),
+            client_num=client_num,
+            driver_name=driver_name,
+            driver_num=driver_num
+        )
