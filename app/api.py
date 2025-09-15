@@ -3,6 +3,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from fastapi import HTTPException
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pyngrok import ngrok
 from typing import Optional, cast
 from app.tg_interface.interface import AsyncTelegramInterface
@@ -55,6 +56,14 @@ async def lifespan(application: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        'http://localhost:3000',
+        'https://intersmartgroup.com/'
+    ]
+)
+
 
 def _gen_response3(
         *,
@@ -80,7 +89,7 @@ async def process_tg_webhook(request: Request):
 
 @app.get('/s3/loads')
 async def get_loads(request: Request):
-    loads = cast(Loads, request.app.state.loads)
+    loads: Loads = request.app.state.loads
     active_loads = [load.safe_dump() for load in await loads.get_actives()]
     return _gen_response3(
         json_status='success',
