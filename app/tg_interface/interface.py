@@ -50,7 +50,7 @@ def craft_load_message(load: Load) -> Tuple[str, InlineKeyboardMarkup]:
     craft = \
         f'{load.stages.start} ... {load.stages.finish}\n'\
         f'{load.driver_name}, +{load.driver_num}\n'\
-        f'\nStage: {load.stage} ({load.last_update})'
+        f'\nStage: {load.stage} ({load.last_update.strftime("%d %b %H:%M")})'
 
     reply_markup = InlineKeyboardMarkup(
         get_kbd(
