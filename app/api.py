@@ -90,16 +90,32 @@ async def get_loads(request: Request):
 
 @app.get('/s3/driver')
 async def get_driver(load_id: str, auth_num: str, request: Request):
-    # /driver?load_id=4214&auth_num=470129384701
-    loads = cast(Loads, request.app.state.loads)
+    # /driver?load_id=699bc14e38c0b49a6947ca4854439426&auth_num=380951234567
+    loads: Loads = request.app.state.loads
+
+    delayed_fetch = asyncio.create_task(loads.get_load_by_id(load_id))
+
     await asyncio.sleep(2)  # Bruteforce defense
-    try:
-        driver, js_status, http_status = loads.get_load_by_id(load_id).get_driver_details(auth_num)
-        return _gen_response3(
-            json_status=js_status,
-            message=None,
-            workload=driver)
-    except Load.NoSuchLoadID:
+
+    load = await delayed_fetch
+    if load is None:
         raise HTTPException(status_code=400, detail='Wrong load ID')
 
+    if load.client_num != auth_num:
+        raise HTTPException(
+            401,
+            detail=_gen_response3(
+                json_status='client match fail',
+                message=None,
+                workload={}
+            )
+        )
 
+    return _gen_response3(
+        json_status='success',
+        message=None,
+        workload={
+            'driver_name':load.driver_name,
+            'driver_num':load.driver_num
+        }
+    )

@@ -49,6 +49,10 @@ class Load(BaseModel):
         digits = ''.join(char for char in value if char in '0123456789')
         return digits[:12]
 
+    @field_serializer('last_update')
+    def format_time(self, last_update: datetime) -> str:
+        return last_update.strftime('%H:%M')
+
     class Config:
         populate_by_name = True
 
@@ -65,5 +69,6 @@ class Load(BaseModel):
                 'client_num',
                 'driver_num',
                 'driver_name'
-            }
+            },
+            by_alias=True
         )
