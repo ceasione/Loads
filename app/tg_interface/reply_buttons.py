@@ -73,7 +73,7 @@ class CreateNewCommand(AbstractCommand):
         "Чернівці\n" \
         "Ясси\n" \
         "Плопені\n\n" \
-        "Козак Григорій\n" \
+        "ПІБводія\n" \
         "+380501231212\n\n" \
         "Client: +380953459607\n"
 
@@ -81,7 +81,7 @@ class CreateNewCommand(AbstractCommand):
         "new:internal\n" \
         "Дніпро\n" \
         "Конотоп\n\n" \
-        "Козак Григорій\n" \
+        "ПІБводія\n" \
         "+380501231212\n\n" \
         "Client: +380953459607"
 
