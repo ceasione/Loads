@@ -5,16 +5,9 @@ from fastapi import HTTPException
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pyngrok import ngrok
-from typing import Optional, cast
 from app.tg_interface.interface import AsyncTelegramInterface
 from app.loads.loads import Loads
-from app.loads.load import Load
-from telegram.ext import Application
 from app import settings
-
-
-DEBUG_URL = 'http://localhost:8000'
-PROD_URL = 'http://localhost:8000'
 
 
 def setup_ngrok(local_url: str) -> str:
@@ -25,12 +18,9 @@ def setup_ngrok(local_url: str) -> str:
     return tunnel.public_url
 
 
-def get_public_url(debug_mode_on: bool) -> str:
-    return setup_ngrok(DEBUG_URL) if debug_mode_on else PROD_URL
-    # if debug_mode_on:
-    #     return setup_ngrok(DEBUG_URL)
-    # else:
-    #     return PROD_URL
+def get_public_url(local_mode_on: bool) -> str:
+
+    return setup_ngrok(settings.LOCALHOST) if local_mode_on else settings.PROD_HOST
 
 
 @asynccontextmanager
@@ -59,26 +49,28 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        'http://localhost:3000',
-        'https://intersmartgroup.com/'
+        settings.LOCALHOST,
+        settings.PROD_HOST
     ]
 )
 
 
 def _gen_response3(
-        *,
-        json_status: str,
-        message: str = None,
-        workload=None) -> dict:
-
-    return {'status': json_status,
-            'message': message,
-            'workload': workload}
+    *,
+    json_status: str,
+    message: str = None,
+    workload=None
+) -> dict:
+    return {
+        'status': json_status,
+        'message': message,
+        'workload': workload
+    }
 
 
 @app.post(settings.TG_WEBHOOK_ENDPOINT)
 async def process_tg_webhook(request: Request):
-    tg_if = cast(AsyncTelegramInterface, request.app.state.tg_if)
+    tg_if: AsyncTelegramInterface = request.app.state.tg_if
     got_secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
     if got_secret != tg_if.own_secret:
         raise HTTPException(403, 'Forbidden')

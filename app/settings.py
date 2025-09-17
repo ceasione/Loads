@@ -27,6 +27,12 @@ WEBHOOK_RESET_SECRET_TOKEN = os.getenv('WEBHOOK_RESET_SECRET_TOKEN')
 WEBHOOK_RESET_SECRET_LINK = os.getenv('WEBHOOK_RESET_SECRET_LINK')
 
 DEBUG = False if os.getenv('DEBUG', 'false') == 'false' else True
+# Using LOCALHOST if IS_LOCALHOST == True else Using PROD_HOST
+# IS_LOCALHOST is needed only for testing purposes
+IS_LOCALHOST = True if os.getenv('LOCALHOST', 'false') == 'true' else False
+PROD_HOST = os.environ['PROD_HOST']
+LOCALHOST = os.getenv('LOCALHOST', 'http://localhost:8000')
+
 TELEGRAM_DEVELOPER_CHAT_ID = os.getenv('TELEGRAM_DEVELOPER_CHAT_ID')
 TELEGRAM_LOADS_CHAT_ID = TELEGRAM_DEVELOPER_CHAT_ID if DEBUG else os.getenv('TELEGRAM_LOADS_CHAT_ID')
 if TELEGRAM_LOADS_CHAT_ID is None:
