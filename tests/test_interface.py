@@ -161,6 +161,8 @@ async def test_handle_inline_buttons_deleted(mocked_iface):
         fake_callback_query.data = "btn_123"
         fake_update = MagicMock(spec=Update)
         fake_update.callback_query = fake_callback_query
+        fake_update.effective_chat.id = mocked_iface.chat_id
+        fake_update.effective_user.id = 777
 
         await mocked_iface.handle_inline_buttons(fake_update, None)
 
@@ -176,7 +178,9 @@ async def test_handle_inline_buttons_deleted(mocked_iface):
 async def test_handle_inline_buttons_edited(mocked_iface):
     fake_button = AsyncMock()
     fake_button.callback_prefix = "btn_"
-    edited_load = {'some': 'data'}
+    edited_load = MagicMock()
+    edited_load.load_id = '98u98493g8jfq3498tioa98754kjidig'
+    # {'some': 'data'}
     fake_button.process_click.return_value = edited_load
 
     with patch("app.tg_interface.interface.BUTTONS", (fake_button, )), \
@@ -186,6 +190,8 @@ async def test_handle_inline_buttons_edited(mocked_iface):
         fake_callback_query.data = "btn_123"
         fake_update = MagicMock(spec=Update)
         fake_update.callback_query = fake_callback_query
+        fake_update.effective_chat.id = mocked_iface.chat_id
+        fake_update.effective_user.id = 777
 
         await mocked_iface.handle_inline_buttons(fake_update, None)
 

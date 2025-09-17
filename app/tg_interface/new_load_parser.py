@@ -1,5 +1,6 @@
 
 from app.loads.load import Load, Stages
+from app.logger import parser_logger
 
 
 class LoadMessageParseError(RuntimeError):
@@ -63,6 +64,7 @@ class LoadMessageParser:
             ):
                 raise LoadMessageParseError(message)
         except IndexError as e:
+            parser_logger.error(f'Failed to parse load message: IndexError - {e}')
             raise LoadMessageParseError(message) from e
 
         return Load(
@@ -122,6 +124,7 @@ class LoadMessageParser:
             ):
                 raise LoadMessageParseError(message)
         except IndexError as e:
+            parser_logger.error(f'Failed to parse load message: IndexError - {e}')
             raise LoadMessageParseError(message) from e
 
         return Load(

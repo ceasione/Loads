@@ -8,14 +8,21 @@ from pyngrok import ngrok
 from app.tg_interface.interface import AsyncTelegramInterface
 from app.loads.loads import Loads
 from app import settings
+from app.logger import api_logger
 
 
 def setup_ngrok(local_url: str) -> str:
     """
     Set up a tunnel and extract public url from it
     """
-    tunnel = ngrok.connect(local_url)
-    return tunnel.public_url
+    api_logger.info(f"Setting up ngrok tunnel for {local_url}")
+    try:
+        tunnel = ngrok.connect(local_url)
+        api_logger.info(f"Ngrok tunnel established: {tunnel.public_url}")
+        return tunnel.public_url
+    except Exception as e:
+        api_logger.error(f"Failed to setup ngrok tunnel: {e}")
+        raise
 
 
 def get_public_url(local_mode_on: bool) -> str:
@@ -29,7 +36,12 @@ def get_public_url(local_mode_on: bool) -> str:
     Returns:
         str: Public URL that can be used to access the application.
     """
-    return setup_ngrok(settings.LOCALHOST) if local_mode_on else settings.PROD_HOST
+    api_logger.info(f"Getting public URL - local mode: {local_mode_on}")
+    if local_mode_on:
+        return setup_ngrok(settings.LOCALHOST)
+    else:
+        api_logger.info(f"Using production host: {settings.PROD_HOST}")
+        return settings.PROD_HOST
 
 
 @asynccontextmanager
@@ -46,24 +58,37 @@ async def lifespan(application: FastAPI):
     Yields:
         None: Control is yielded back to FastAPI during application runtime.
     """
+    api_logger.info("Starting application lifespan")
 
-    public_url = get_public_url(settings.DEBUG)
+    try:
+        public_url = get_public_url(settings.DEBUG)
+        webhook_url = public_url + settings.TG_WEBHOOK_ENDPOINT
+        api_logger.info(f"Webhook URL configured: {webhook_url}")
 
-    # Initialize resources
-    async with Loads(settings.DB_CONNECTION_URL) as loads:
+        # Initialize resources
+        api_logger.info("Initializing database connection")
+        async with Loads(settings.DB_CONNECTION_URL) as loads:
+            api_logger.info("Database connection established")
 
-        async with AsyncTelegramInterface(
-                token=settings.TG_API_TOKEN,
-                webhook_url=public_url+settings.TG_WEBHOOK_ENDPOINT,
-                chat_id=settings.TELEGRAM_LOADS_CHAT_ID,
-                loads=loads) as tg_if:
+            api_logger.info("Initializing Telegram interface")
+            async with AsyncTelegramInterface(
+                    token=settings.TG_API_TOKEN,
+                    webhook_url=webhook_url,
+                    chat_id=settings.TELEGRAM_LOADS_CHAT_ID,
+                    loads=loads) as tg_if:
 
-            application.state.tg_if = tg_if
-            application.state.loads = loads
-            # Yielding control
-            yield
+                api_logger.info("Telegram interface initialized")
+                application.state.tg_if = tg_if
+                application.state.loads = loads
 
-    # No need to clean up after since we were at context managers
+                api_logger.info("Application startup completed successfully")
+                # Yielding control
+                yield
+
+        api_logger.info("Application shutdown completed")
+    except Exception as e:
+        api_logger.error(f"Application startup failed: {e}")
+        raise
 
 app = FastAPI(lifespan=lifespan)
 
@@ -117,13 +142,26 @@ async def process_tg_webhook(request: Request):
     Raises:
         HTTPException: 403 if the secret token is invalid.
     """
-    tg_if: AsyncTelegramInterface = request.app.state.tg_if
-    got_secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
-    if got_secret != tg_if.own_secret:
-        raise HTTPException(403, 'Forbidden')
-    data = await request.json()
-    await tg_if.webhook_entrypoint(data)
-    return {'status': 'ok'}
+    api_logger.debug("Received Telegram webhook request")
+
+    try:
+        tg_if: AsyncTelegramInterface = request.app.state.tg_if
+        got_secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
+
+        if got_secret != tg_if.own_secret:
+            api_logger.warning("Invalid webhook secret token received")
+            raise HTTPException(403, 'Forbidden')
+
+        api_logger.debug("Webhook authentication successful")
+        data = await request.json()
+        api_logger.debug(f"Processing webhook data: {data.get('update_id', 'unknown')}")
+
+        await tg_if.webhook_entrypoint(data)
+        api_logger.debug("Webhook processed successfully")
+        return {'status': 'ok'}
+    except Exception as e:
+        api_logger.error(f"Error processing webhook: {e}")
+        raise
 
 
 @app.get('/s3/loads')
@@ -140,12 +178,21 @@ async def get_loads(request: Request):
     Returns:
         dict: Response containing count and list of active loads.
     """
-    loads: Loads = request.app.state.loads
-    active_loads = [load.safe_dump() for load in await loads.get_actives()]
-    return _gen_response3(
-        json_status='success',
-        workload={'len': len(active_loads), 'loads': active_loads}
-    )
+    api_logger.info("Retrieving active loads")
+
+    try:
+        loads: Loads = request.app.state.loads
+        active_loads_objects = await loads.get_actives()
+        active_loads = [load.safe_dump() for load in active_loads_objects]
+
+        api_logger.info(f"Retrieved {len(active_loads)} active loads")
+        return _gen_response3(
+            json_status='success',
+            workload={'len': len(active_loads), 'loads': active_loads}
+        )
+    except Exception as e:
+        api_logger.error(f"Error retrieving active loads: {e}")
+        raise e
 
 
 @app.get('/s3/driver')
@@ -169,32 +216,47 @@ async def get_driver(load_id: str, auth_num: str, request: Request):
     Raises:
         HTTPException: 400 if load ID is invalid, 401 if authentication fails.
     """
-    # /driver?load_id=699bc14e38c0b49a6947ca4854439426&auth_num=380951234567
-    loads: Loads = request.app.state.loads
+    # /driver?load_id=683cd668819d85b045d7085283aa3b77&auth_num=380951234567
+    api_logger.info(f"Driver info request for load {load_id}... with auth {auth_num}...")
 
-    delayed_fetch = asyncio.create_task(loads.get_load_by_id(load_id))
+    try:
+        loads: Loads = request.app.state.loads
 
-    await asyncio.sleep(2)  # Bruteforce defense
+        # Start load fetch asynchronously
+        delayed_fetch = asyncio.create_task(loads.get_load_by_id(load_id))
 
-    load = await delayed_fetch
-    if load is None:
-        raise HTTPException(status_code=400, detail='Wrong load ID')
+        # Brute force protection delay
+        api_logger.debug("Applying brute force protection delay")
+        await asyncio.sleep(2)
 
-    if load.client_num != auth_num:
-        raise HTTPException(
-            401,
-            detail=_gen_response3(
-                json_status='client match fail',
-                message=None,
-                workload={}
+        load = await delayed_fetch
+        if load is None:
+            api_logger.warning(f"Load not found: {load_id}")
+            raise HTTPException(status_code=400, detail='Wrong load ID')
+
+        api_logger.debug(f"Load found: {load.load_id}...")
+
+        if load.client_num != auth_num:
+            api_logger.warning(f"Authentication failed for load {load_id}... with auth {auth_num}...")
+            raise HTTPException(
+                401,
+                detail=_gen_response3(
+                    json_status='client match fail',
+                    message=None,
+                    workload={}
+                )
             )
-        )
 
-    return _gen_response3(
-        json_status='success',
-        message=None,
-        workload={
-            'driver_name':load.driver_name,
-            'driver_num':load.driver_num
-        }
-    )
+        api_logger.info(f"Driver info successfully retrieved for load {load_id}...")
+        return _gen_response3(
+            json_status='success',
+            message=None,
+            workload={
+                'driver_name': load.driver_name,
+                'driver_num': load.driver_num
+            }
+        )
+    except HTTPException as e:
+        api_logger.error(f"Error retrieving driver info: {e}")
+        raise e
+

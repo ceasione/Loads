@@ -10,6 +10,7 @@ from pydantic import (
     ConfigDict
 )
 from typing import Literal, Optional
+from app.logger import model_logger
 
 
 class AllowedStagesViolation(ValueError):
@@ -134,8 +135,11 @@ class Load(BaseModel):
         Args:
             new_stage: The new stage to transition to.
         """
+        old_stage = self.stage
+        model_logger.debug(f"Load {self.load_id}... changing stage: {old_stage} -> {new_stage}")
         self.stage = new_stage
         self.last_update = datetime.now()
+        model_logger.info(f"Load {self.load_id}... stage updated to: {new_stage}")
 
     def safe_dump(self) -> dict:
         """
@@ -147,6 +151,7 @@ class Load(BaseModel):
         Returns:
             dict: Load data with sensitive fields excluded, using field aliases.
         """
+        model_logger.debug(f"Generating safe dump for load {self.load_id}...")
         return self.model_dump(
             exclude={
                 'client_num',

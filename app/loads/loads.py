@@ -4,6 +4,7 @@ from app.loads.load import Load, Stages
 from psycopg import AsyncConnection
 from psycopg.errors import DataError, IntegrityError
 from app.loads import queries
+from app.logger import db_logger
 
 # TMP_PG_RUN_CMD = 'docker run --name dev-postgres -e POSTGRES_DB=pstgrs -e POSTGRES_USER=olvr -e POSTGRES_PASSWORD=msVWXP -p 127.0.0.1:5432:5432 -d postgres'
 # TODO REMOVE TMP_PG_RUN_CMD AND SET UP DOCKER COMPOSE
@@ -40,9 +41,19 @@ class Loads:
         Returns:
             self: The Loads instance for use in async context.
         """
-        self.connection = await AsyncConnection.connect(self.db_connection_url)
-        await self.initialise_db_if_empty()
-        return self
+        db_logger.info(f"Connecting to database: {self.db_connection_url.split('@')[-1] if '@' in self.db_connection_url else 'localhost'}")
+        try:
+            self.connection = await AsyncConnection.connect(self.db_connection_url)
+            db_logger.info("Database connection established successfully")
+
+            db_logger.debug("Initializing database schema if needed")
+            await self.initialise_db_if_empty()
+            db_logger.info("Database initialization completed")
+
+            return self
+        except Exception as e:
+            db_logger.error(f"Failed to connect to database: {e}")
+            raise
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
@@ -56,7 +67,12 @@ class Loads:
             exc_tb: Exception traceback if an exception occurred.
         """
         if self.connection:
-            await self.connection.close()
+            db_logger.info("Closing database connection")
+            try:
+                await self.connection.close()
+                db_logger.info("Database connection closed successfully")
+            except Exception as e:
+                db_logger.error(f"Error closing database connection: {e}")
 
     async def get_load_by_id(self, load_id: str) -> Optional[Load]:
         """
@@ -71,16 +87,29 @@ class Loads:
         Raises:
             TypeError: If load_id is not a string.
         """
+        db_logger.debug(f"Retrieving load by ID: {load_id}...")
+
         if not isinstance(load_id, str):
+            db_logger.error(f"Invalid load_id type: {type(load_id).__name__}, expected str")
             raise TypeError('load_id must be a string')
-        rows = await self.execute_query(
-            queries.CTE_SELECT_ALL_LOADS +
-            queries.FILTER_SINGLE_LOAD,
-            load_id
-        )
-        if rows is not None and len(rows) > 0:
-            return self._convert_cte_row_to_load(rows[0])
-        return None
+
+        try:
+            rows = await self.execute_query(
+                queries.CTE_SELECT_ALL_LOADS +
+                queries.FILTER_SINGLE_LOAD,
+                load_id
+            )
+
+            if rows is not None and len(rows) > 0:
+                load = self._convert_cte_row_to_load(rows[0])
+                db_logger.debug(f"Load found: {load_id}... (stage: {load.stage})")
+                return load
+            else:
+                db_logger.debug(f"Load not found: {load_id}...")
+                return None
+        except Exception as e:
+            db_logger.error(f"Error retrieving load by ID {load_id}...: {e}")
+            raise
 
     async def get_qty_of_actives(self):
         """
@@ -133,18 +162,30 @@ class Loads:
         Returns:
             str: The load ID of the created load.
         """
+        db_logger.info(f"Adding new load: {load.load_id}... (type: {load.load_type}, stage: {load.stage})")
 
-        client_id = await self._insert_client(load.client_num)
-        driver_id = await self._insert_driver(
-            name=load.driver_name,
-            phone_num=load.driver_num
-        )
-        load_id = await self._insert_load(
-            load=load,
-            client_id=client_id,
-            driver_id=driver_id
-        )
-        return load_id
+        try:
+            db_logger.debug(f"Inserting client: {load.client_num[:6]}...")
+            client_id = await self._insert_client(load.client_num)
+
+            db_logger.debug(f"Inserting driver: {load.driver_name}")
+            driver_id = await self._insert_driver(
+                name=load.driver_name,
+                phone_num=load.driver_num
+            )
+
+            db_logger.debug(f"Inserting load: {load.load_id}...")
+            load_id = await self._insert_load(
+                load=load,
+                client_id=client_id,
+                driver_id=driver_id
+            )
+
+            db_logger.info(f"Load successfully added: {load_id}...")
+            return load_id
+        except Exception as e:
+            db_logger.error(f"Error adding load {load.load_id}...: {e}")
+            raise
 
     async def change_stage(self, load: Load, new_stage) -> Load:
         """
@@ -157,9 +198,17 @@ class Loads:
         Returns:
             Load: Updated load object with new stage and timestamp.
         """
-        load.change_stage(new_stage)
-        await self.update(load)
-        return load
+        old_stage = load.stage
+        db_logger.info(f"Changing load stage: {load.load_id}... from '{old_stage}' to '{new_stage}'")
+
+        try:
+            load.change_stage(new_stage)
+            await self.update(load)
+            db_logger.info(f"Load stage successfully updated: {load.load_id}...")
+            return load
+        except Exception as e:
+            db_logger.error(f"Error changing stage for load {load.load_id}...: {e}")
+            raise
 
     async def update(self, load: Load) -> str:
         """
@@ -341,15 +390,25 @@ class Loads:
         Raises:
             Exception: Re-raises any database exceptions after rollback.
         """
+        # Log query execution (truncate long queries)
+        query_preview = query[:100] + "..." if len(query) > 100 else query
+        db_logger.debug(f"Executing query: {query_preview} with {len(params)} parameters")
+
         try:
             async with self.connection.cursor() as cursor:
                 await cursor.execute(query, params)
                 rows = []
                 if cursor.description:
                     rows = await cursor.fetchall()
+                    db_logger.debug(f"Query returned {len(rows)} rows")
+                else:
+                    db_logger.debug("Query executed (no return data)")
+
                 await self.connection.commit()
                 return rows
         except Exception as e:
+            db_logger.error(f"Database query failed: {e}")
+            db_logger.debug(f"Failed query: {query_preview}")
             await self.connection.rollback()
             raise e
 

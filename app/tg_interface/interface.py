@@ -1,4 +1,5 @@
 
+from app.logger import tg_logger
 from typing import List, Tuple, Optional, Any, TYPE_CHECKING
 import secrets
 from app.loads.loads import Loads
@@ -246,31 +247,47 @@ class AsyncTelegramInterface:
             - Edits the bot's message in response to the button click.
             - Sends a callback query answer to acknowledge the click.
         """
+        if update.effective_chat.id != self.chat_id:
+            tg_logger.warning(f"Unauthorized callback query from chat: {update.effective_chat.id}")
+
         callback_data = update.callback_query.data
+        user_id = update.effective_user.id if update.effective_user else "unknown"
+        tg_logger.debug(f"Inline button clicked by user {user_id}: {callback_data}")
+
         for btn in BUTTONS:
             if btn.callback_prefix in callback_data:
-                edited_load = await btn.process_click(
-                    callback_data=callback_data,
-                    loads=self.loads
-                )
-                if edited_load is None:
-                    await update.callback_query.edit_message_text('Deleted')
+                tg_logger.info(f"Processing button click: {btn.__name__}")
+                try:
+                    edited_load = await btn.process_click(
+                        callback_data=callback_data,
+                        loads=self.loads
+                    )
+                    if edited_load is None:
+                        tg_logger.debug("Load deleted, updating message")
+                        await update.callback_query.edit_message_text('Deleted')
+                        await update.callback_query.answer()
+                        return
+
+                    tg_logger.debug(f'Updating load message: {edited_load.load_id}')
+                    edited_load_msg, keyboard = craft_load_message(edited_load)
+                    await update.callback_query.edit_message_text(
+                        text=edited_load_msg,
+                        reply_markup=keyboard
+                    )
                     await update.callback_query.answer()
                     return
+                except Exception as e:
+                    tg_logger.error(f"Error processing button click: {e}")
+                    raise
 
-                edited_load_msg, keyboard = craft_load_message(edited_load)
-                await update.callback_query.edit_message_text(
-                    text=edited_load_msg,
-                    reply_markup=keyboard
-                )
-                await update.callback_query.answer()
-                return
+        tg_logger.warning(f"Unknown button action: {callback_data}")
 
     async def handle_error(self, update: object, context: ContextTypes.DEFAULT_TYPE):
-        # LOG
-        # Send error to user
+        """Handle errors in Telegram processing."""
+        tg_logger.error(f"Telegram error occurred: {context.error}")
+        if update:
+            tg_logger.error(f"Error context - Update: {update}")
         raise context.error
-        # raise context.error
 
     async def webhook_entrypoint(self, data: dict[str, Any]):
         """
@@ -289,5 +306,13 @@ class AsyncTelegramInterface:
         Side Effects:
             Passes the update to `self.app.process_update()` for handling.
         """
-        update = Update.de_json(data, self.app.bot)
-        await self.app.process_update(update)
+        update_id = data.get('update_id', 'unknown')
+        tg_logger.debug(f"Processing webhook update: {update_id}")
+
+        try:
+            update = Update.de_json(data, self.app.bot)
+            await self.app.process_update(update)
+            tg_logger.debug(f"Webhook update processed successfully: {update_id}")
+        except Exception as e:
+            tg_logger.error(f"Error processing webhook update {update_id}: {e}")
+            raise

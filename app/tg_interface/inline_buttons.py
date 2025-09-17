@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from telegram import InlineKeyboardButton
 from app.loads.loads import Loads
 from app.loads.load import Load
+from app.logger import buttons_logger
 
 
 def extract_id_from_callback_data(callback_data: str) -> str:
