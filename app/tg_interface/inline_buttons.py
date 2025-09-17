@@ -7,6 +7,18 @@ from app.loads.load import Load
 
 
 def extract_id_from_callback_data(callback_data: str) -> str:
+    """
+    Extract load ID from Telegram callback data.
+
+    Args:
+        callback_data: Callback data in format 'command:load_id'.
+
+    Returns:
+        str: The extracted load ID (32 characters).
+
+    Raises:
+        RuntimeError: If callback format is invalid or load_id length is wrong.
+    """
     command, sep, load_id = callback_data.partition(':')
     if sep != ':' or len(load_id) != 32:
         raise RuntimeError('Invalid load_id or callback format')
@@ -14,11 +26,29 @@ def extract_id_from_callback_data(callback_data: str) -> str:
 
 
 class AbstractButton(ABC):
+    """
+    Abstract base class for inline keyboard buttons.
+
+    Provides common functionality for generating callback data
+    and processing button clicks for load stage management.
+    """
     button_name: Optional[str] = None
     callback_prefix: Optional[str] = None
 
     @classmethod
     def get_callback_data(cls, load_id) -> str:
+        """
+        Generate callback data for the button.
+
+        Args:
+            load_id: Unique identifier for the load.
+
+        Returns:
+            str: Formatted callback data string.
+
+        Raises:
+            ValueError: If button_name or callback_prefix is not defined.
+        """
         if cls.button_name is None:
             raise ValueError(f"{cls.__name__} does not define button_name")
         if cls.callback_prefix is None:
@@ -35,6 +65,7 @@ class AbstractButton(ABC):
 
 
 class SetStartButton(AbstractButton):
+    """Button to set load stage to 'start'."""
     button_name = 'Set Start'
     callback_prefix = 'set_start:'
 
@@ -47,6 +78,7 @@ class SetStartButton(AbstractButton):
 
 
 class SetEngagedButton(AbstractButton):
+    """Button to set load stage to 'engage'."""
     button_name = 'Set Engage'
     callback_prefix = 'set_engage:'
 
@@ -59,6 +91,7 @@ class SetEngagedButton(AbstractButton):
 
 
 class SetDriveButton(AbstractButton):
+    """Button to set load stage to 'drive'."""
     button_name = 'Set Drive'
     callback_prefix = 'set_drive:'
 
@@ -71,6 +104,7 @@ class SetDriveButton(AbstractButton):
 
 
 class SetClearButton(AbstractButton):
+    """Button to set load stage to 'clear'."""
     button_name = 'Set Clear'
     callback_prefix = 'set_clear:'
 
@@ -82,6 +116,7 @@ class SetClearButton(AbstractButton):
         return load
 
 class SetFinishButton(AbstractButton):
+    """Button to set load stage to 'finish'."""
     button_name = 'Set Finish'
     callback_prefix = 'set_finish:'
 
@@ -93,6 +128,7 @@ class SetFinishButton(AbstractButton):
         return load
 
 class DeleteButton(AbstractButton):
+    """Button to move load to 'history' stage (delete)."""
     button_name = 'Delete'
     callback_prefix = 'delete:'
 

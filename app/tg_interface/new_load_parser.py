@@ -3,24 +3,43 @@ from app.loads.load import Load, Stages
 
 
 class LoadMessageParseError(RuntimeError):
+    """Exception raised when load message parsing fails due to invalid format."""
     pass
 
 
 class LoadMessageParser:
+    """
+    Parser for converting Telegram messages into Load objects.
+
+    Handles parsing of both external and internal load messages with
+    different formats and validation requirements.
+    """
 
     @staticmethod
     def external(message: str) -> Load:
         """
+        Parse an external load message into a Load object.
+
+        Expected message format:
         0 new:external
-        1 Кривой Рог
-        2 Днепр
-        3 Черновцы
-        4 Яссы
+        1 Кривой Рог            # Start place
+        2 Днепр                 # Engage place
+        3 Черновцы              # Clear place
+        4 Яссы                  # Finish place
         5
-        6 Козак Григорий
-        7 +380501231212
+        6 Козак Григорий        # Driver name
+        7 +380501231212         # Driver phone
         8
-        9 Client: +380953459607
+        9 Client: +380953459607 # Client phone
+
+        Args:
+            message: Raw message string from Telegram.
+
+        Returns:
+            Load: Parsed external load object with 'history' stage.
+
+        Raises:
+            LoadMessageParseError: If message format is invalid or incomplete.
         """
         try:
             lines = message.strip().split('\n')
@@ -63,17 +82,27 @@ class LoadMessageParser:
     @staticmethod
     def internal(message: str) -> Load:
         """
-            0 new:external
-            1 Кривой Рог
-            2 Днепр
-            3 Черновцы
-            4 Яссы
-            5
-            6 Козак Григорий
-            7 +380501231212
-            8
-            9 Client: +380953459607
-            """
+        Parse an internal load message into a Load object.
+
+        Expected message format:
+        0 new:internal
+        1 Кривой Рог            # Start place
+        2 Яссы                  # Finish place
+        3
+        4 Козак Григорий        # Driver name
+        5 +380501231212         # Driver phone
+        6
+        7 Client: +380953459607 # Client phone
+
+        Args:
+            message: Raw message string from Telegram.
+
+        Returns:
+            Load: Parsed internal load object with 'history' stage.
+
+        Raises:
+            LoadMessageParseError: If message format is invalid or incomplete.
+        """
         try:
             lines = message.strip().split('\n')
             start_place = lines[1].strip()

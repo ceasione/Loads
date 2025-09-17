@@ -19,12 +19,33 @@ def setup_ngrok(local_url: str) -> str:
 
 
 def get_public_url(local_mode_on: bool) -> str:
+    """
+    Get the appropriate public URL for the application.
 
+    Args:
+        local_mode_on: If True, sets up ngrok tunnel for local development.
+                      If False, returns production host URL.
+
+    Returns:
+        str: Public URL that can be used to access the application.
+    """
     return setup_ngrok(settings.LOCALHOST) if local_mode_on else settings.PROD_HOST
 
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
+    """
+    FastAPI lifespan context manager that handles application startup and shutdown.
+
+    Initializes database connection, telegram interface, and sets up webhook URL.
+    Stores initialized resources in application state for use by endpoints.
+
+    Args:
+        application: FastAPI application instance.
+
+    Yields:
+        None: Control is yielded back to FastAPI during application runtime.
+    """
 
     public_url = get_public_url(settings.DEBUG)
 
@@ -61,6 +82,17 @@ def _gen_response3(
     message: str = None,
     workload=None
 ) -> dict:
+    """
+    Generate a standardized JSON response format.
+
+    Args:
+        json_status: Status of the operation (e.g., 'success', 'error').
+        message: Optional message providing additional context.
+        workload: Optional data payload to include in response.
+
+    Returns:
+        dict: Standardized response dictionary with status, message, and workload.
+    """
     return {
         'status': json_status,
         'message': message,
@@ -70,6 +102,21 @@ def _gen_response3(
 
 @app.post(settings.TG_WEBHOOK_ENDPOINT)
 async def process_tg_webhook(request: Request):
+    """
+    Process incoming Telegram webhook requests.
+
+    Validates the webhook secret token and forwards the update to the
+    Telegram interface for processing.
+
+    Args:
+        request: FastAPI request object containing webhook data.
+
+    Returns:
+        dict: Status response indicating successful processing.
+
+    Raises:
+        HTTPException: 403 if the secret token is invalid.
+    """
     tg_if: AsyncTelegramInterface = request.app.state.tg_if
     got_secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
     if got_secret != tg_if.own_secret:
@@ -81,6 +128,18 @@ async def process_tg_webhook(request: Request):
 
 @app.get('/s3/loads')
 async def get_loads(request: Request):
+    """
+    Retrieve all active loads from the database.
+
+    Returns a list of active loads with their safe dump representation
+    (excluding sensitive driver and client information).
+
+    Args:
+        request: FastAPI request object to access application state.
+
+    Returns:
+        dict: Response containing count and list of active loads.
+    """
     loads: Loads = request.app.state.loads
     active_loads = [load.safe_dump() for load in await loads.get_actives()]
     return _gen_response3(
@@ -91,6 +150,25 @@ async def get_loads(request: Request):
 
 @app.get('/s3/driver')
 async def get_driver(load_id: str, auth_num: str, request: Request):
+    """
+    Retrieve driver information for a specific load.
+
+    Implements security measures including:
+    - 2-second delay for brute force protection
+    - Client phone number authentication
+    - Load existence validation
+
+    Args:
+        load_id: Unique identifier for the load.
+        auth_num: Client phone number for authentication.
+        request: FastAPI request object to access application state.
+
+    Returns:
+        dict: Response containing driver name and phone number.
+
+    Raises:
+        HTTPException: 400 if load ID is invalid, 401 if authentication fails.
+    """
     # /driver?load_id=699bc14e38c0b49a6947ca4854439426&auth_num=380951234567
     loads: Loads = request.app.state.loads
 
