@@ -1,13 +1,13 @@
 import secrets
 from datetime import datetime
-from time import strftime
 
 from pydantic import (
     BaseModel,
     Field,
     model_validator,
     field_validator,
-    field_serializer
+    field_serializer,
+    ConfigDict
 )
 from typing import Literal, Optional
 
@@ -29,6 +29,8 @@ class Stages(BaseModel):
     finish: str
 
 class Load(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     load_type: Literal['external', 'internal'] = Field(alias='type')
     stage: ALLOWED_STAGES
     stages: Stages
@@ -54,9 +56,6 @@ class Load(BaseModel):
     @field_serializer('last_update')
     def format_time(self, last_update: datetime) -> str:
         return last_update.strftime('%H:%M')
-
-    class Config:
-        populate_by_name = True
 
     def is_load_external(self) -> bool:
         return True if self.load_type == 'external' else False
