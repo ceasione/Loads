@@ -3,9 +3,9 @@ from flask import request
 import json
 from flask import Response
 from flask_cors import CORS
-from app.lib.apis import telegramapi2
-from app.lib.loads.loads import Loads
-from app.lib.loads.interface import TelegramInterface
+# from app.lib.apis import telegramapi2
+# from app.lib.loads.loads import Loads
+# from app.lib.loads.interface import TelegramInterface
 from app import settings
 from app.settings import WEBHOOK_URL
 
@@ -43,7 +43,7 @@ def get_driver():
     if not load_id or auth_num:
         __gen_response2(http_status=400, json_status='error', message='load_id and client_num are required')
 
-    from app.lib.loads.loads import Load
+    # from app.lib.loads.loads import Load
     try:
         driver, js_status, http_status = LOADS.get_load_by_id(load_id).get_driver_details(auth_num)
         return __gen_response2(http_status, js_status, workload=driver)
@@ -79,11 +79,12 @@ def webhook_reset():
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-    telegramapi2.send_developer(f'Exception escape', e)
-    return __gen_response2(http_status=500,
-                           json_status='Internal error, see logs',
-                           message='Exception escape',
-                           workload=None)
+    pass
+    # telegramapi2.send_developer(f'Exception escape', e)
+    # return __gen_response2(http_status=500,
+    #                        json_status='Internal error, see logs',
+    #                        message='Exception escape',
+    #                        workload=None)
 
 
 def create_app():

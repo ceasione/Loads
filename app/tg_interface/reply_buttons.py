@@ -138,7 +138,7 @@ class ParseLoadCommand(AbstractCommand):
                 loads=[load],
                 bot=bot
             )
-        except LoadMessageParseError as e:
+        except LoadMessageParseError:
             await bot.send_message(
                 chat_id=update.effective_chat.id,
                 text='✋ Ой помилочка! Перевірте чи все вірно вказано'
