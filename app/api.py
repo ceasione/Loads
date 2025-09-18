@@ -61,7 +61,7 @@ async def lifespan(application: FastAPI):
     api_logger.info("Starting application lifespan")
 
     try:
-        public_url = get_public_url(settings.DEBUG)
+        public_url = get_public_url(settings.IS_LOCALHOST)
         webhook_url = public_url + settings.TG_WEBHOOK_ENDPOINT
         api_logger.info(f"Webhook URL configured: {webhook_url}")
 
