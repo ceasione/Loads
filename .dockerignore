@@ -1,0 +1,7 @@
+
+.env
+/.venv
+/release
+/storage
+.gitignore
+poetry.lock
