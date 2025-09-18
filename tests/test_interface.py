@@ -23,6 +23,8 @@ async def mocked_iface():
         as mock_app_builder_cls:
 
         mock_app = AsyncMock()
+        mock_app.add_error_handler = MagicMock()
+        mock_app.add_handler = MagicMock()
 
         mock_app_builder = MagicMock()
         mock_app_builder.token.return_value = mock_app_builder
@@ -45,6 +47,7 @@ async def mocked_iface():
 async def test_interface_init(mocked_iface):
     mocked_iface.app.add_error_handler.assert_called_once()
     mocked_iface.app.add_handler.assert_called()
+
     mocked_iface.app.initialize.assert_awaited_once()
     mocked_iface.app.start.assert_awaited_once()
     mocked_iface.app.bot.set_webhook.assert_awaited_once()
