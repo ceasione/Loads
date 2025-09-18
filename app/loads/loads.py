@@ -41,7 +41,7 @@ class Loads:
         Returns:
             self: The Loads instance for use in async context.
         """
-        db_logger.info(f"Connecting to database: {self.db_connection_url.split('@')[-1] if '@' in self.db_connection_url else 'localhost'}")
+        db_logger.info(f"Connecting to database: {self.db_connection_url}")
         try:
             self.connection = await AsyncConnection.connect(self.db_connection_url)
             db_logger.info("Database connection established successfully")

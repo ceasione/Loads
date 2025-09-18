@@ -10,6 +10,7 @@ def test_get_reply_kbd():
     simplified_kbd = reply_buttons.get_kbd()
     assert isinstance(simplified_kbd, list)
     assert len(simplified_kbd) > 0
+    # noinspection PyTypeChecker
     assert isinstance(simplified_kbd[0], list)
 
 
@@ -43,6 +44,7 @@ async def mocked_iface():
             yield iface
 
 
+# noinspection PyUnresolvedReferences
 @pytest.mark.asyncio
 async def test_interface_init(mocked_iface):
     mocked_iface.app.add_error_handler.assert_called_once()

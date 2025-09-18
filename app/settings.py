@@ -1,6 +1,5 @@
 
 import os
-from email.policy import default
 
 from dotenv import load_dotenv
 load_dotenv()
