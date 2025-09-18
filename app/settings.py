@@ -1,43 +1,42 @@
 
 import os
+from email.policy import default
+
 from dotenv import load_dotenv
-from pathlib import Path
 load_dotenv()
 
-DEV_MACHINE = True if os.getenv('DEV_MACHINE', 'false') == 'true' else False
+# This has influence on Loglevel
+DEBUG = True if os.getenv('DEBUG', 'false') == 'true' else False
 
-LOADS_NOSQL_LOC = Path(os.getenv('LOADS_JSON_LOCATION', 'storage/loads.json'))
+# PostgreSQL
+DB_HOST = os.getenv('DB_HOST', default='localhost')
+DB_PORT = os.getenv('DB_PORT', default='5432')
+DB_NAME = os.getenv('DB_NAME', default='loads_db')
+DB_USER = os.getenv('DB_USER', default=None)
+DB_PASSWORD = os.getenv('DB_PASSWORD', default=None)
+DB_CONNECTION_URL=f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
-TELEGRAM_BOT_APIKEY = os.getenv('TELEGRAM_BOT_APIKEY')
-DEVELOPER_BOT_APIKEY = os.getenv('DEVELOPER_BOT_APIKEY')
-
-
-# DB_HOST = os.environ['DB_HOST']
-# DB_PORT = os.environ['DB_PORT']
-# DB_NAME = os.environ['DB_NAME']
-# DB_USER = os.environ['DB_USER']
-# DB_PASSWORD = os.environ['DB_PASSWORD']
-DB_CONNECTION_URL=os.environ['DB_CONNECTION_URL']
-
-WEBHOOK_BASE = os.getenv('WEBHOOK_BASE', 'https://api.intersmartgroup.com')
-WEBHOOK_PATH = os.getenv('WEBHOOK_PATH', '/s2/loads-tgbot')
-WEBHOOK_URL = WEBHOOK_BASE + WEBHOOK_PATH
-
-WEBHOOK_RESET_SECRET_TOKEN = os.getenv('WEBHOOK_RESET_SECRET_TOKEN')
-WEBHOOK_RESET_SECRET_LINK = os.getenv('WEBHOOK_RESET_SECRET_LINK')
-
-DEBUG = False if os.getenv('DEBUG', 'false') == 'false' else True
-# Using LOCALHOST if IS_LOCALHOST == True else Using PROD_HOST
-# IS_LOCALHOST is needed only for testing purposes
+# This host is using to set up Telegram Webhook
 IS_LOCALHOST = True if os.getenv('LOCALHOST', 'false') == 'true' else False
-PROD_HOST = os.environ['PROD_HOST']
-LOCALHOST = os.getenv('LOCALHOST', 'http://localhost:8000')
+PROD_HOST = os.getenv('PROD_HOST', default=None)             # On IS_LOCALHOST == False
+LOCALHOST = os.getenv('LOCALHOST', 'http://localhost:8000')  # On IS_LOCALHOST == True
 
-TELEGRAM_DEVELOPER_CHAT_ID = os.getenv('TELEGRAM_DEVELOPER_CHAT_ID')
-TELEGRAM_LOADS_CHAT_ID = TELEGRAM_DEVELOPER_CHAT_ID if DEBUG else os.getenv('TELEGRAM_LOADS_CHAT_ID')
-if TELEGRAM_LOADS_CHAT_ID is None:
-    raise RuntimeError('TG_API_TOKEN environment variable not set')
-TG_WEBHOOK_ENDPOINT = os.getenv('TG_WEBHOOK_ENDPOINT', '/tgwhep')
+# This is used to set up a Bot
 TG_API_TOKEN = os.getenv('TG_API_TOKEN', default=None)
-if TG_API_TOKEN is None:
-    raise RuntimeError('TG_API_TOKEN environment variable not set')
+TG_WEBHOOK_ENDPOINT = os.getenv('TG_WEBHOOK_ENDPOINT', '/tgwhep')
+TELEGRAM_DEVELOPER_CHAT_ID = os.getenv('TELEGRAM_DEVELOPER_CHAT_ID', default=None)
+TELEGRAM_LOADS_CHAT_ID = TELEGRAM_DEVELOPER_CHAT_ID if DEBUG else os.getenv('TELEGRAM_LOADS_CHAT_ID')
+
+
+required_envs = {
+    'DB_USER': DB_USER,
+    'DB_PASSWORD': DB_PASSWORD,
+    'PROD_HOST': PROD_HOST,
+    'TG_API_TOKEN': TG_API_TOKEN,
+    'TELEGRAM_DEVELOPER_CHAT_ID': TELEGRAM_DEVELOPER_CHAT_ID,
+    'TELEGRAM_LOADS_CHAT_ID': TELEGRAM_LOADS_CHAT_ID
+}
+for name, value in required_envs.items():
+    if value is None:
+        raise EnvironmentError(f"Required environment variable '{name}' is missing")
+

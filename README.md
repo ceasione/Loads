@@ -84,27 +84,63 @@ pip install -r requirements.txt  # if available
 ```
 
 ### 3. Environment Configuration
-Create `.env` file with required variables:
+Create `.env` file or use a secret manager to set up required variables:
+
+#### Required Environment Variables
+These variables MUST be set or the application will fail to start:
+
 ```env
-# Database
-DB_CONNECTION_URL=postgresql://username:password@localhost:5432/database
+# Database Configuration (Required)
+DB_USER=your_database_username
+DB_PASSWORD=your_database_password
+
+# Telegram Bot Configuration (Required)
+TG_API_TOKEN=your_bot_token_from_botfather
+TELEGRAM_DEVELOPER_CHAT_ID=your_dev_chat_id
+TELEGRAM_LOADS_CHAT_ID=your_production_chat_id
+
+# Production Host (Required when not localhost)
+PROD_HOST=https://your-domain.com
+```
+
+#### Optional Environment Variables (with defaults)
+```env
+# Database (defaults provided)
+DB_HOST=localhost                    # Default: localhost
+DB_PORT=5432                        # Default: 5432
+DB_NAME=loads_db                    # Default: loads_db
+
+# Development Settings
+DEBUG=true                          # Default: false
+IS_LOCALHOST=true                   # Default: false
+LOCALHOST=http://localhost:8000     # Default: http://localhost:8000
+
+# Telegram Webhook
+TG_WEBHOOK_ENDPOINT=/tgwhep         # Default: /tgwhep
+```
+
+#### Complete .env Example
+```env
+# Development Mode
+DEBUG=true
+IS_LOCALHOST=true
+
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=loads_db
+DB_USER=your_username
+DB_PASSWORD=your_password
+
+# Production Host (for webhook setup)
+PROD_HOST=https://api.yourcompany.com/s3
+LOCALHOST=http://localhost:8000
 
 # Telegram Bot
-TG_API_TOKEN=your_bot_token_here
-TELEGRAM_LOADS_CHAT_ID=your_chat_id
-TELEGRAM_DEVELOPER_CHAT_ID=your_dev_chat_id
-
-# Webhook Configuration
+TG_API_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
 TG_WEBHOOK_ENDPOINT=/tgwhep
-WEBHOOK_BASE=https://your-domain.com
-WEBHOOK_PATH=/s2/loads-tgbot
-
-# Security
-WEBHOOK_RESET_SECRET_TOKEN=your_secret_token
-
-# Development
-DEBUG=true
-DEV_MACHINE=true
+TELEGRAM_DEVELOPER_CHAT_ID=-1001234567890
+TELEGRAM_LOADS_CHAT_ID=-1001234567891
 ```
 
 ### 4. Database Setup
