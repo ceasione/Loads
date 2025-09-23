@@ -6,6 +6,7 @@ from app.loads.loads import Loads
 from app.loads.load import Load
 from app.tg_interface.inline_buttons import get_kbd, BUTTONS
 from app.tg_interface.reply_buttons import get_kbd as get_reply_kbd, COMMANDS
+from telegram.error import BadRequest
 from telegram import (
     Bot,
     Update,
@@ -265,7 +266,6 @@ class AsyncTelegramInterface:
                     if edited_load is None:
                         tg_logger.debug("Load deleted, updating message")
                         await update.callback_query.edit_message_text('Deleted')
-                        await update.callback_query.answer()
                         return
 
                     tg_logger.debug(f'Updating load message: {edited_load.load_id}')
@@ -274,11 +274,16 @@ class AsyncTelegramInterface:
                         text=edited_load_msg,
                         reply_markup=keyboard
                     )
-                    await update.callback_query.answer()
                     return
                 except Exception as e:
-                    tg_logger.error(f"Error processing button click: {e}")
-                    raise
+                    if isinstance(e, BadRequest) and 'Message is not modified' in e.message:
+                        tg_logger.debug(f"While modifying TG message is was not modified, skipping")
+                        pass
+                    else:
+                        tg_logger.error(f"Error processing button click: {e}")
+                        raise
+                finally:
+                    await update.callback_query.answer()
 
         tg_logger.warning(f"Unknown button action: {callback_data}")
 
