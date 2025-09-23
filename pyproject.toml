@@ -9,14 +9,12 @@ license = {text = "MIT License"}
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
 dependencies = [
-    "requests (>=2.0.0,<3.0.0)",
-    "urllib3 (>=1.26.0,<1.27.0)",
     "python-telegram-bot (>=22.3,<23.0)",
     "pytest (>=8.4.1,<9.0.0)",
     "dotenv (>=0.9.9,<0.10.0)",
     "fastapi[standard] (>=0.116.1,<0.117.0)",
     "psycopg[binary] (>=3.2.9,<4.0.0)",
-    "testcontainers[postgresql] (>=4.12.0,<5.0.0)"
+    "pytest-asyncio (>=1.1.0,<2.0.0)"
 ]
 
 [tool.poetry]
@@ -24,6 +22,7 @@ dependencies = [
 [tool.poetry.group.dev.dependencies]
 pyngrok = "^7.0.0"
 pytest-asyncio = "^1.1.0"
+deptry = "^0.23.1"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
