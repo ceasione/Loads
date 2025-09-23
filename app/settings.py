@@ -1,11 +1,12 @@
 
 import os
-
 from dotenv import load_dotenv
-load_dotenv()
+
+if IS_LOCALHOST := os.getenv('IS_LOCALHOST', 'true') == 'true':
+    load_dotenv()
 
 # This has influence on Loglevel
-DEBUG = True if os.getenv('DEBUG', 'false') == 'true' else False
+DEBUG = os.getenv('DEBUG', 'false') == 'true'
 
 # PostgreSQL
 DB_HOST = os.getenv('DB_HOST', default='localhost')
@@ -13,10 +14,8 @@ DB_PORT = os.getenv('DB_PORT', default='5432')
 DB_NAME = os.getenv('DB_NAME', default='loads_db')
 DB_USER = os.getenv('DB_USER', default=None)
 DB_PASSWORD = os.getenv('DB_PASSWORD', default=None)
-DB_CONNECTION_URL=f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
 # This host is using to set up Telegram Webhook
-IS_LOCALHOST = True if os.getenv('LOCALHOST', 'false') == 'true' else False
 PROD_HOST = os.getenv('PROD_HOST', default=None)             # On IS_LOCALHOST == False
 LOCALHOST = os.getenv('LOCALHOST', 'http://localhost:8000')  # On IS_LOCALHOST == True
 
