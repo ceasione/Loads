@@ -21,16 +21,38 @@ class Loads:
     Implements async context manager for proper connection handling.
     """
 
-    def __init__(self, db_connection_url: str):
+    def __init__(
+            self,
+            db_host: str,
+            db_port: str,
+            db_name: str,
+            db_user: str,
+            db_password: str,
+            autocommit=False
+    ):
         """
-        Initialize the Loads manager with database connection.
+        Initialize the Loads manager with database connection parameters.
 
         Args:
-            db_connection_url: PostgreSQL connection URL for database access.
+            db_host: Database host address.
+            db_port: Database port number.
+            db_name: Database name.
+            db_user: Database username.
+            db_password: Database password.
         """
+        # Assemble connection string from individual parameters
+        self.db_host = db_host
+        self.db_port = db_port
+        self.db_name = db_name
+        self.db_user = db_user
+        self.db_password = db_password
+        self.autocommit = autocommit
 
-        self.db_connection_url = db_connection_url
         self.connection: Optional[AsyncConnection] = None
+
+    def get_conn_url(self, hide_password=False):
+        pwd = '****' if hide_password else self.db_password
+        return f'postgresql://{self.db_user}:{pwd}@{self.db_host}:{self.db_port}/{self.db_name}'
 
     async def __aenter__(self):
         """
@@ -41,9 +63,12 @@ class Loads:
         Returns:
             self: The Loads instance for use in async context.
         """
-        db_logger.info(f"Connecting to database: {self.db_connection_url}")
+        db_logger.info(f"Connecting to database: {self.get_conn_url(hide_password=True)}")
         try:
-            self.connection = await AsyncConnection.connect(self.db_connection_url)
+            self.connection = await AsyncConnection.connect(
+                self.get_conn_url(),
+                autocommit=self.autocommit
+            )
             db_logger.info("Database connection established successfully")
 
             db_logger.debug("Initializing database schema if needed")
@@ -73,6 +98,7 @@ class Loads:
                 db_logger.info("Database connection closed successfully")
             except Exception as e:
                 db_logger.error(f"Error closing database connection: {e}")
+                raise
 
     async def get_load_by_id(self, load_id: str) -> Optional[Load]:
         """

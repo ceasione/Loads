@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager
 from fastapi import HTTPException
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pyngrok import ngrok
 from app.tg_interface.interface import AsyncTelegramInterface
 from app.loads.loads import Loads
 from app import settings
@@ -17,6 +16,7 @@ def setup_ngrok(local_url: str) -> str:
     """
     api_logger.info(f"Setting up ngrok tunnel for {local_url}")
     try:
+        from pyngrok import ngrok
         tunnel = ngrok.connect(local_url)
         api_logger.info(f"Ngrok tunnel established: {tunnel.public_url}")
         return tunnel.public_url
@@ -67,7 +67,13 @@ async def lifespan(application: FastAPI):
 
         # Initialize resources
         api_logger.info("Initializing database connection")
-        async with Loads(settings.DB_CONNECTION_URL) as loads:
+        async with Loads(
+                db_host = settings.DB_HOST,
+                db_port = settings.DB_PORT,
+                db_name = settings.DB_NAME,
+                db_user = settings.DB_USER,
+                db_password = settings.DB_PASSWORD
+        ) as loads:
             api_logger.info("Database connection established")
 
             api_logger.info("Initializing Telegram interface")
