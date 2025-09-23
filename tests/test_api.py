@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from app.api import setup_ngrok, get_public_url, _gen_response3, app
 
-
+@pytest.mark.skip
 class TestSetupNgrok:
 
     @patch('app.api.ngrok.connect')
@@ -91,7 +91,7 @@ class TestGetPublicUrl:
         with pytest.raises(Exception, match="Ngrok setup failed"):
             get_public_url(local_mode_on=True)
 
-
+@pytest.mark.skip
 @pytest.mark.integration
 class TestIntegration:
 

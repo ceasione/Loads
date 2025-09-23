@@ -1,32 +1,49 @@
 
 import pytest
-from testcontainers.postgres import PostgresContainer
 from app.loads.loads import Loads
 import app.loads.queries as queries
 from app.loads.load import Load, Stages
+from app import settings
+from psycopg import sql
 
 
 TEST_DB_NAME = 'test_loads'
 
 
-@pytest.fixture(scope='session')
-def docker_pg_instance():
-    with PostgresContainer(
-        'postgres:17',
-        driver=None
-    ) as pg_container:
-        yield pg_container
+async def add_test_database():
+    async with Loads(
+        db_host=settings.DB_HOST,
+        db_port=settings.DB_PORT,
+        db_name=settings.DB_NAME,
+        db_user=settings.DB_USER,
+        db_password=settings.DB_PASSWORD,
+        autocommit=True
+    ) as database_helper:
+        drop_if_exists = sql.SQL('DROP DATABASE IF EXISTS {};').format(sql.Identifier(TEST_DB_NAME))
+        await database_helper.execute_query(drop_if_exists.as_string())
+
+        create = sql.SQL('CREATE DATABASE {};').format(sql.Identifier(TEST_DB_NAME))
+        await database_helper.execute_query(create.as_string())
 
 
+test_counter: int = 0
+
 @pytest.fixture(scope='session')
-async def loads_instance(docker_pg_instance: PostgresContainer):
-    url=docker_pg_instance.get_connection_url()
-    async with Loads(db_connection_url=url) as loads:
-        # Here goes cleaning and fake data injection
-        await loads.execute_query(queries.DROP_ALL_TABLES)
-        await loads.initialise_db_if_empty()
-        await loads.execute_query(queries.ADD_FAKE_DATA)
-        yield loads
+async def db_instance():
+    await add_test_database()
+    global test_counter
+    test_counter += 1
+    async with Loads(
+        db_host=settings.DB_HOST,
+        db_port=settings.DB_PORT,
+        db_name=TEST_DB_NAME,  # here is the difference
+        db_user=settings.DB_USER,
+        db_password=settings.DB_PASSWORD
+    ) as instance:
+        await instance.execute_query(queries.DROP_ALL_TABLES)
+        await instance.initialise_db_if_empty()
+        await instance.execute_query(queries.ADD_FAKE_DATA)
+        yield instance
 
 
 @pytest.fixture(scope='session')
@@ -64,8 +81,8 @@ def load2():
 
 
 @pytest.mark.integration
-async def test_get_actives(loads_instance: Loads):
-    active_loads = await loads_instance.get_actives()
+async def test_get_actives(db_instance: Loads):
+    active_loads = await db_instance.get_actives()
     assert isinstance(active_loads, list)
     assert len(active_loads) == 2
     assert isinstance(active_loads[0], Load)
@@ -73,59 +90,59 @@ async def test_get_actives(loads_instance: Loads):
 
 
 @pytest.mark.integration
-async def test_get_historicals(loads_instance: Loads):
-    historical_loads = await loads_instance.get_historicals()
+async def test_get_historicals(db_instance: Loads):
+    historical_loads = await db_instance.get_historicals()
     assert isinstance(historical_loads, list)
     assert len(historical_loads) == 1
     assert isinstance(historical_loads[0], Load)
 
 
 @pytest.mark.integration
-async def test_add_load(loads_instance: Loads, load):
-    load_id = await loads_instance.add(load)
+async def test_add_load(db_instance: Loads, load):
+    load_id = await db_instance.add(load)
     assert isinstance(load_id, str)
     assert len(load_id) == 32
     assert load_id == load.load_id
 
 
 @pytest.mark.integration
-async def test_add_load_twice(loads_instance: Loads, load):
+async def test_add_load_twice(db_instance: Loads, load):
     with pytest.raises(ValueError):
-        await loads_instance.add(load)
+        await db_instance.add(load)
 
 
 @pytest.mark.integration
-async def test_get_load_by_id(loads_instance, load):
-    got_load = await loads_instance.get_load_by_id(load.load_id)
+async def test_get_load_by_id(db_instance, load):
+    got_load = await db_instance.get_load_by_id(load.load_id)
     assert isinstance(got_load, Load)
     assert got_load == load
 
 
 @pytest.mark.integration
-async def test_update_load(loads_instance: Loads, load):
+async def test_update_load(db_instance: Loads, load):
     load.change_stage('finish')
-    load_id = await loads_instance.update(load)
-    got_load = await loads_instance.get_load_by_id(load_id)
+    load_id = await db_instance.update(load)
+    got_load = await db_instance.get_load_by_id(load_id)
     assert isinstance(got_load, Load)
     assert got_load == load
 
 
 @pytest.mark.integration
-async def test_update_missing_load(loads_instance: Loads, load2):
+async def test_update_missing_load(db_instance: Loads, load2):
     with pytest.raises(ValueError):
-        await loads_instance.update(load2)
+        await db_instance.update(load2)
 
 
 @pytest.mark.integration
-async def test_update_load_wrong_parameters(loads_instance: Loads, load):
+async def test_update_load_wrong_parameters(db_instance: Loads, load):
     load.change_stage('wrong_parameter')
     with pytest.raises(ValueError):
-        await loads_instance.update(load)
+        await db_instance.update(load)
 
 @pytest.mark.integration
-async def test_get_load_by_id_fail(loads_instance: Loads):
+async def test_get_load_by_id_fail(db_instance: Loads):
     with pytest.raises(TypeError):
-        await loads_instance.get_load_by_id(123)
+        await db_instance.get_load_by_id(123)
 
 
 @pytest.mark.integration
@@ -137,8 +154,8 @@ async def test_get_load_by_id_fail(loads_instance: Loads):
         ('380951234569', 9)
     ]
 )
-async def test_insert_client_ok(loads_instance, client_phone, expected_id):
-    assert expected_id == await loads_instance._insert_client(client_phone)
+async def test_insert_client_ok(db_instance, client_phone, expected_id):
+    assert expected_id == await db_instance._insert_client(client_phone)
 
 
 @pytest.mark.integration
@@ -150,9 +167,9 @@ async def test_insert_client_ok(loads_instance, client_phone, expected_id):
         None              # null
     ]
 )
-async def test_insert_client_fail(loads_instance, client_phone):
+async def test_insert_client_fail(db_instance, client_phone):
     with pytest.raises(ValueError):
-        await loads_instance._insert_client(client_phone)
+        await db_instance._insert_client(client_phone)
 
 
 @pytest.mark.integration
@@ -164,8 +181,8 @@ async def test_insert_client_fail(loads_instance, client_phone):
         ('Diana', '380951234567', 9)
     ]
 )
-async def test_insert_driver_usert(loads_instance, driver_name, driver_phone, expected_id):
-    assert expected_id == await loads_instance._insert_driver(driver_name, driver_phone)
+async def test_insert_driver_usert(db_instance, driver_name, driver_phone, expected_id):
+    assert expected_id == await db_instance._insert_driver(driver_name, driver_phone)
 
 
 @pytest.mark.integration
@@ -177,17 +194,17 @@ async def test_insert_driver_usert(loads_instance, driver_name, driver_phone, ex
         ('Diana', None)              # null
     ]
 )
-async def test_insert_driver_wrong_number(loads_instance, driver_name, driver_phone):
+async def test_insert_driver_wrong_number(db_instance, driver_name, driver_phone):
     with pytest.raises(ValueError):
-        await loads_instance._insert_driver(driver_name, driver_phone)
+        await db_instance._insert_driver(driver_name, driver_phone)
 
 @pytest.mark.integration
-async def test_get_qty_of_actives(loads_instance):
-    actives_count = await loads_instance.get_qty_of_actives()
+async def test_get_qty_of_actives(db_instance):
+    actives_count = await db_instance.get_qty_of_actives()
     assert actives_count == 3  # As expected in test data
 
 
 @pytest.mark.integration
-async def test_get_qty_of_historicals(loads_instance):
-    historicals_count = await loads_instance.get_qty_of_historicals()
+async def test_get_qty_of_historicals(db_instance):
+    historicals_count = await db_instance.get_qty_of_historicals()
     assert historicals_count == 1
