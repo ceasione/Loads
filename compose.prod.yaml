@@ -1,0 +1,43 @@
+
+services:
+  api:
+    image: ceasione/fastloads:0.2
+    restart: unless-stopped
+    environment:
+      - DEBUG=${FL_DEBUG}
+      - DB_HOST=postgres_db
+      - DB_PORT=${FL_DB_PORT}
+      - DB_NAME=${FL_DB_NAME}
+      - DB_USER=${FL_DB_USER}
+      - DB_PASSWORD=${FL_DB_PASSWORD}
+      - IS_LOCALHOST=${FL_IS_LOCALHOST}
+      - PROD_HOST=${FL_PROD_HOST}
+      - LOCALHOST=${FL_LOCALHOST}
+      - TG_API_TOKEN=${FL_TG_API_TOKEN}
+      - TG_WEBHOOK_ENDPOINT=${FL_TG_WEBHOOK_ENDPOINT}
+      - TELEGRAM_DEVELOPER_CHAT_ID=${FL_TELEGRAM_DEVELOPER_CHAT_ID}
+      - TELEGRAM_LOADS_CHAT_ID=${FL_TELEGRAM_LOADS_CHAT_ID}
+    volumes:
+      - /tmp/fastloads:/tmp/sockets
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+
+  postgres_db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${FL_DB_USER}
+      - POSTGRES_PASSWORD=${FL_DB_PASSWORD}
+      - POSTGRES_DB=${FL_DB_NAME}
+    volumes:
+      - fastloads_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${FL_DB_USER} -d ${FL_DB_NAME} " ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  fastloads_pg_data:

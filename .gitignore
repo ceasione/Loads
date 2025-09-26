@@ -1,5 +1,3 @@
-.idea/
-test/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -131,6 +129,7 @@ celerybeat.pid
 
 # Environments
 .env
+docker.env
 .venv
 env/
 venv/

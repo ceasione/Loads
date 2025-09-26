@@ -1,5 +1,6 @@
 
 .env
+docker.env
 /.venv
 /release
 /storage

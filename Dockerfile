@@ -1,3 +1,6 @@
+#docker run --name dev-postgres -e POSTGRES_DB=loads_db -e POSTGRES_USER=fastoads_user -e POSTGRES_PASSWORD=msVWXPmsVWXP -p 127.0.0.1:5432:5432 -d postgres:17
+#docker run -it ceasione/fastloads:latest /bin/bash
+#docker run -it ceasione/fastloads:latest pytest
 
 FROM python:3.10-slim
 LABEL authors="oliver"
@@ -26,4 +29,4 @@ RUN poetry config virtualenvs.create false \
 COPY . .
 
 # Run the app with poetry (or python directly if installed system-wide)
-CMD ["poetry", "run", "python", "-m", "uvicorn", "app.api:app"]
+CMD ["poetry", "run", "python", "-m", "uvicorn", "app.api:app", "--uds", "/tmp/sockets/docker_fastloads.sock"]
