@@ -8,18 +8,18 @@ LABEL authors="oliver"
 # Install system dependencies for Poetry and your app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    build-essential \
     && rm -rf /var/lib/apt/lists/*
-
-# Copy only dependency files first (for better caching)
-COPY pyproject.toml poetry.lock* ./
 
 # Install Poetry
 ENV POETRY_HOME="/opt/poetry"
 ENV PATH="$POETRY_HOME/bin:$PATH"
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
+# Set work directory
 WORKDIR /fastloads
+
+# Copy only dependency files first (for better caching)
+COPY pyproject.toml poetry.lock* ./
 
 # Install dependencies (no dev deps, install into system site-packages instead of virtualenv)
 RUN poetry config virtualenvs.create false \
@@ -28,5 +28,13 @@ RUN poetry config virtualenvs.create false \
 # Copy app code
 COPY . .
 
+RUN groupadd -g 1500 fastloads && \
+    useradd -u 1500 -g fastloads -s /bin/bash fastloads && \
+    chown -R fastloads:fastloads /fastloads
+
+USER fastloads
+
+ENV SOCKET_LOC=/tmp/docker_fastloads.sock
+
 # Run the app with poetry (or python directly if installed system-wide)
-CMD ["poetry", "run", "python", "-m", "uvicorn", "app.api:app", "--uds", "/tmp/sockets/docker_fastloads.sock"]
+CMD python -m uvicorn app.api:app --uds $SOCKET_LOC

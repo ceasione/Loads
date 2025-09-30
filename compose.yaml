@@ -2,8 +2,9 @@
 services:
   api:
     build: .
-    image: ceasione/fastloads:0.2
+    image: ceasione/fastloads:1.0.1
     restart: unless-stopped
+    user: "1500:1500"
     environment:
       - DEBUG=${FL_DEBUG}
       - DB_HOST=postgres_db
@@ -19,7 +20,7 @@ services:
       - TELEGRAM_DEVELOPER_CHAT_ID=${FL_TELEGRAM_DEVELOPER_CHAT_ID}
       - TELEGRAM_LOADS_CHAT_ID=${FL_TELEGRAM_LOADS_CHAT_ID}
     volumes:
-      - /tmp/fastloads:/tmp/sockets
+      - /tmp:/tmp
     depends_on:
       postgres_db:
         condition: service_healthy

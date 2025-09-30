@@ -1,4 +1,5 @@
 
+import os
 import asyncio
 from contextlib import asynccontextmanager
 from fastapi import HTTPException
@@ -44,6 +45,19 @@ def get_public_url(local_mode_on: bool) -> str:
         return settings.PROD_HOST
 
 
+async def set_660_permissions(file, delay):
+    """
+    Set up the 660 permissions required to enforce security.
+    This is used to fix permissions of unix socker FastAPI serves on.
+    Args:
+        file: string with file path permissions to be set to.
+        delay: time to wait for FastAPI is setting socket up.
+    """
+    await asyncio.sleep(delay)
+    os.chmod(file, 0o660)
+    api_logger.info("Setting permissions to socket done")
+
+
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     """
@@ -86,6 +100,9 @@ async def lifespan(application: FastAPI):
                 api_logger.info("Telegram interface initialized")
                 application.state.tg_if = tg_if
                 application.state.loads = loads
+
+                api_logger.info("Setting permissions to socket")
+                asyncio.create_task(set_660_permissions(settings.SOCKET_LOC, 5))
 
                 api_logger.info("Application startup completed successfully")
                 # Yielding control

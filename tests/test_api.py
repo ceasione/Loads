@@ -1,8 +1,6 @@
 import pytest
-import asyncio
 from unittest.mock import patch, MagicMock, AsyncMock
 from fastapi import HTTPException
-from fastapi.testclient import TestClient
 from app.api import setup_ngrok, get_public_url, _gen_response3, app
 
 @pytest.mark.skip
